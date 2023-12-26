@@ -1,0 +1,1 @@
+#include "dbadapter.h"
