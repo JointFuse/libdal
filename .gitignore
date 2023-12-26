@@ -30,3 +30,16 @@
 *.exe
 *.out
 *.app
+
+# Project files
+*.pro.user*
+*.user
+bin*/
+build*/
+xbin/
+3rdparty/
+lib*/
+
+# MinGW generated files
+*.Debug
+*.Release
