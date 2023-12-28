@@ -3,11 +3,14 @@
 
 #include <memory>
 
+#include "dalcore.h"
 #include "material/responseabstract.h"
 #include "material/actionabstract.h"
 #include "drivers/adapterinterface.h"
 #include "asynch/actionqueue.h"
 #include "asynch/queuemanager.h"
+
+//namespace dal { //==============================================================
 
 class LogicDevice;
 /**
@@ -21,7 +24,8 @@ public:
     using interfaceHandle_t = std::shared_ptr<DeviceInterface>;
 
 public:
-    virtual ~DeviceInterface() = default;
+    DeviceInterface();
+    virtual ~DeviceInterface();
 
     void notifyOwner(AbstractResponse::responseHandle_t);
     void execute    (AbstractAction::actionHandle_t);
@@ -30,7 +34,7 @@ protected:
     virtual void processAction(AbstractAction::actionHandle_t) = 0;
 
 private:
-    LogicDevice* m_owner;
+    DAL_DECLARE_PIMPL
 
 };
 /**
@@ -39,15 +43,18 @@ private:
 class LogicDevice
 {
 public:
-    virtual ~LogicDevice() = default;
+    LogicDevice();
+    virtual ~LogicDevice();
 
     virtual void responseGetter(std::unique_ptr<AbstractResponse>) = 0;
 
-    void setInterface           (DeviceInterface::interfaceHandle_t rhs);
-    const DeviceInterface::interfaceHandle_t interface () const noexcept { return m_interface; }
+    void setInterface(DeviceInterface::interfaceHandle_t rhs);
+
+    DeviceInterface::interfaceHandle_t
+    interface() const;
 
 protected:
-    DeviceInterface::interfaceHandle_t m_interface;
+    DAL_DECLARE_PIMPL
 
 };
 /**
@@ -62,7 +69,7 @@ public:
     void processAction(AbstractAction::actionHandle_t) override;
 
 private:
-    std::unique_ptr<DeviceDriver> m_executor;
+    DAL_DECLARE_PIMPL
 
 };
 /**
@@ -71,7 +78,7 @@ private:
 class QueuedAsynchInterface : public DeviceInterface
 {
 public:
-    QueuedAsynchInterface(ActionQueue::handle_t,
+    QueuedAsynchInterface(SimpleQueue::handle_t,
                           QueueManager::managerHandle_t);
     ~QueuedAsynchInterface();
 
@@ -81,9 +88,10 @@ protected:
     virtual void startAsynchQueueProcessing(std::shared_ptr<QueueManager>) = 0;
 
 private:
-    ActionQueue::handle_t m_queue;
-    std::shared_ptr<QueueManager> m_manager;
+    DAL_DECLARE_PIMPL
 
 };
+
+//} // ~dal ======================================================================
 
 #endif // DEVICEXTERNAL_H

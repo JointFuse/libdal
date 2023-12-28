@@ -2,8 +2,11 @@
 #define QASYNCHINTERFACE_H
 
 #include <QObject>
+#include <QMetaType>
 
 #include "../devicexternal.h"
+
+Q_DECLARE_METATYPE(AbstractResponse*)
 
 class QAsynchInterface : public QObject, public QueuedAsynchInterface
 {
@@ -13,7 +16,7 @@ public slots:
     void responseReciever(AbstractResponse*);
 
 public:
-    QAsynchInterface(ActionQueue::handle_t,
+    QAsynchInterface(SimpleQueue::handle_t,
                      std::shared_ptr<QueueManager>,
                      QObject* parent = nullptr);
 

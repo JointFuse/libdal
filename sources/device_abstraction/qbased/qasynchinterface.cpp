@@ -17,7 +17,7 @@ void QAsynchInterface::responseReciever(AbstractResponse* resp)
 }
 
 QAsynchInterface::QAsynchInterface(
-    ActionQueue::handle_t que,
+    SimpleQueue::handle_t que,
     std::shared_ptr<QueueManager> mgr,
     QObject* parent)
     : QObject{ parent }

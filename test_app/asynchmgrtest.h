@@ -24,7 +24,7 @@ public:
     bool finished{ false };
 
 private:
-    AbstractionTestDevice* m_dvc;
+    std::unique_ptr<AbstractionTestDevice> m_dvc;
     QThread m_thread;
     void* mgr;
     void* inf;

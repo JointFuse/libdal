@@ -44,4 +44,5 @@ HEADERS += \
     ../include/device_abstraction/material/concreteresponse.h \
     ../include/device_abstraction/material/responseabstract.h \
     ../include/device_abstraction/qbased/qasynchinterface.h \
-    ../include/device_abstraction/qbased/qsimplemanager.h
+    ../include/device_abstraction/qbased/qsimplemanager.h \
+    ../include/device_abstraction/dalcore.h

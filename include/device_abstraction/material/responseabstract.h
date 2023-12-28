@@ -3,8 +3,6 @@
 
 #include <memory>
 
-#include <QMetaType>
-
 #include "actionabstract.h"
 
 class AbstractResponse : public AbstractAction
@@ -21,7 +19,5 @@ public:
     AbstractResponse(uid_t cli) { m_requestor = cli; }
 
 };
-
-Q_DECLARE_METATYPE(AbstractResponse*)
 
 #endif // RESPONSEABSTRACT_H

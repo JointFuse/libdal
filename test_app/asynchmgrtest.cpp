@@ -95,7 +95,7 @@ public:
             {
                 const auto time = std::chrono::high_resolution_clock::now();
                 ((CalcTimeoutAction*)actBuf[i].get())->request_time = time;
-                m_interface->execute(std::move(actBuf[i]));
+                interface()->execute(std::move(actBuf[i]));
             }
 
             auto szBuf = 0;
@@ -161,13 +161,13 @@ void AsynchMgrTest::test()
 AsynchMgrTest::AsynchMgrTest(QObject* parent)
     : QObject{ parent }
 {
-    auto queue      = ActionQueue::handle_t             { new ActionQueue };
+    auto queue      = SimpleQueue::handle_t             { new SimpleQueue };
     auto driver     = DeviceDriver::driverHandle_t      { new TestDriver };
     mgr             = new TestManager(std::move(driver), queue);
     auto manager    = QueueManager::managerHandle_t     { (TestManager*)mgr };
     inf             = new TestInterface(queue, manager);
     auto interface  = DeviceInterface::interfaceHandle_t{ (TestInterface*)inf };
-    m_dvc           = new AbstractionTestDevice;
+    m_dvc           = std::make_unique<AbstractionTestDevice>();
     m_dvc           ->setInterface(interface);
 }
 
@@ -175,7 +175,7 @@ AsynchMgrTest::~AsynchMgrTest()
 {
     m_thread.exit();
     m_thread.wait();
-    delete m_dvc;
+//    delete m_dvc;
 }
 
 void AsynchMgrTest::threads()

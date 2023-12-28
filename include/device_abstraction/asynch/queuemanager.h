@@ -2,11 +2,8 @@
 #define QUEUEMANAGER_H
 
 #include <memory>
-#include <atomic>
-#include <future>
-#include <thread>
-#include <mutex>
 
+#include "../dalcore.h"
 #include "actionqueue.h"
 #include "../drivers/adapterinterface.h"
 /**
@@ -19,17 +16,15 @@ public:
 
 public:
     QueueManager(std::unique_ptr<DeviceDriver> executor,
-                 ActionQueue::handle_t queue);
+                 SimpleQueue::handle_t queue);
     virtual ~QueueManager();
 
     virtual void processQueue() = 0;
 
-    bool isWorking() const noexcept { return m_isWorking; }
+    bool isWorking() const;
 
 protected:
-    std::unique_ptr<DeviceDriver> m_executor;
-    ActionQueue::handle_t m_queue;
-    std::atomic<bool> m_isWorking;
+    DAL_DECLARE_PIMPL
 
 };
 /**
@@ -38,12 +33,17 @@ protected:
 class SimpleManager : public QueueManager
 {
 public:
-    using QueueManager::QueueManager;
+    SimpleManager(std::unique_ptr<DeviceDriver> executor,
+                  SimpleQueue::handle_t queue);
+    ~SimpleManager();
 
     void processQueue() override;
 
 protected:
     virtual void sendClientResponse(AbstractResponse::responseHandle_t) = 0;
+
+private:
+    DAL_DECLARE_PIMPL
 
 };
 /**
@@ -53,7 +53,7 @@ class AsynchRespondManager : public SimpleManager
 {
 public:
     AsynchRespondManager(std::unique_ptr<DeviceDriver> executor,
-                         ActionQueue::handle_t queue);
+                         SimpleQueue::handle_t queue);
     ~AsynchRespondManager();
 
 protected:
@@ -61,10 +61,7 @@ protected:
     virtual void responseSender(AbstractResponse::responseHandle_t) = 0;
 
 private:
-    std::list<AbstractResponse::responseHandle_t> m_resp;
-    std::future<void> m_task;
-    std::atomic<bool> m_flag{ true };
-    std::mutex m_mtx;
+    DAL_DECLARE_PIMPL
 
 };
 
