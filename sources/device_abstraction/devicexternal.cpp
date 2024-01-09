@@ -121,7 +121,17 @@ public:
 
     void processAction(AbstractAction::actionHandle_t act)
     {
-        m_queue->push_back(std::move(act));
+        auto priority = ((PriorityAction*)act.get())->priority();
+
+        switch(priority) {
+        case PriorityAction::First:
+            m_queue->push_front(std::move(act));
+            break;
+        case PriorityAction::Last:
+        default:
+            m_queue->push_back(std::move(act));
+            break;
+        }
 
         if (!m_manager->isWorking())
             m_base->startAsynchQueueProcessing(m_manager);

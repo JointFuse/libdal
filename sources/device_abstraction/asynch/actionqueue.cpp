@@ -54,6 +54,15 @@ public:
         return {};
     }
 
+    void clear()
+    try {
+        const std::lock_guard<decltype(m_queueSynch)> mutex_lock(m_queueSynch);
+        m_queue.clear();
+    }
+    catch(std::system_error& err) {
+        std::cerr << err.what() << std::endl;
+    }
+
     int queueSize() const
     {
         return m_queue.size();
@@ -123,6 +132,11 @@ AbstractAction::actionHandle_t SimpleQueue::pop_back()
 AbstractAction::actionHandle_t SimpleQueue::pop_front()
 {
     return pimpl->pop_front();
+}
+
+void SimpleQueue::clear()
+{
+    pimpl->clear();
 }
 
 int SimpleQueue::queueSize() const

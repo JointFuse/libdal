@@ -82,6 +82,7 @@ public:
                           QueueManager::managerHandle_t);
     ~QueuedAsynchInterface();
 
+    // NOTE this class using ONLY with priority actions
     void processAction(AbstractAction::actionHandle_t) override;
 
 protected:

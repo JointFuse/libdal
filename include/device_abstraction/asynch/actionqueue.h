@@ -39,6 +39,7 @@ public:
     virtual AbstractAction::actionHandle_t pop_back ()       = 0;
     virtual AbstractAction::actionHandle_t pop_front()       = 0;
 
+    virtual void clear      ()                               = 0;
     virtual int queueSize   () const                         = 0;
 
     virtual void lockInterface      (AbstractAction::uid_t)  = 0;
@@ -61,6 +62,7 @@ public:
     AbstractAction::actionHandle_t pop_back () override;
     AbstractAction::actionHandle_t pop_front() override;
 
+    void clear() override;
     int queueSize() const override;
 
     void lockInterface      (AbstractAction::uid_t) override;

@@ -24,4 +24,25 @@ private:
 
 };
 
+class PriorityAction : public AbstractAction
+{
+public:
+    enum ActionPriority{
+        Last    ,
+        First   ,
+        Default ,
+        Low     ,
+        Middle  ,
+        High    ,
+    };
+
+public:
+    void setPriority(ActionPriority prior)  { m_priority = prior; }
+    ActionPriority priority()               const noexcept { return m_priority; }
+
+private:
+    ActionPriority m_priority = Default;
+
+};
+
 #endif // ACTIONABSTRACT_H

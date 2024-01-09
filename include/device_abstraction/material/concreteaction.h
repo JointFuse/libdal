@@ -14,9 +14,4 @@ struct DataBaseAction : public AbstractAction
 //    int uid{ DBInterface::Invalid };
 };
 
-struct PTZAction : public AbstractAction
-{
-//    std::map<AxisType, AxisData> device_state;
-};
-
 #endif // CONCRETEACTION_H

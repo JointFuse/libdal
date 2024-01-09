@@ -15,7 +15,7 @@
 #include "device_abstraction/devicexternal.h"
 #include "device_abstraction/drivers/adapterinterface.h"
 
-struct CalcTimeoutAction : public AbstractAction
+struct CalcTimeoutAction : public PriorityAction
 {
     CalcTimeoutAction()
     {}
@@ -175,7 +175,6 @@ AsynchMgrTest::~AsynchMgrTest()
 {
     m_thread.exit();
     m_thread.wait();
-//    delete m_dvc;
 }
 
 void AsynchMgrTest::threads()
