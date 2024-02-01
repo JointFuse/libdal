@@ -5,6 +5,10 @@
 
 #include "actionabstract.h"
 
+namespace dal { ////////////////////////////////////////////////////////////////
+/**
+ * @brief The AbstractResponse class
+ */
 class AbstractResponse : public AbstractAction
 {
 public:
@@ -19,5 +23,7 @@ public:
     AbstractResponse(uid_t cli) { m_requestor = cli; }
 
 };
+
+} //////////////////////////////////////////////////////////////////////////////
 
 #endif // RESPONSEABSTRACT_H

@@ -3,8 +3,13 @@
 
 #include <memory>
 
-class DeviceInterface;
 
+namespace dal { ////////////////////////////////////////////////////////////////
+
+class DeviceInterface;
+/**
+ * @brief The AbstractAction class
+ */
 class AbstractAction
 {
     friend DeviceInterface;
@@ -23,7 +28,9 @@ private:
     uid_t m_requestor{ nullptr };
 
 };
-
+/**
+ * @brief The PriorityAction class
+ */
 class PriorityAction : public AbstractAction
 {
 public:
@@ -44,5 +51,7 @@ private:
     ActionPriority m_priority = Default;
 
 };
+
+} //////////////////////////////////////////////////////////////////////////////
 
 #endif // ACTIONABSTRACT_H

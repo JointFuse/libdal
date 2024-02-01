@@ -6,6 +6,8 @@
 #include <iostream>
 #include <stdexcept>
 
+using namespace dal;
+
 class SimpleQueue::_impl
 {
 private:
@@ -113,14 +115,6 @@ private:
 
 };
 
-SimpleQueue::SimpleQueue()
-    : pimpl{ std::make_unique<_impl>() }
-{
-
-}
-
-SimpleQueue::~SimpleQueue() = default;
-
 void SimpleQueue::push_back(AbstractAction::actionHandle_t act)
 {
     pimpl->push_back(std::move(act));
@@ -180,3 +174,6 @@ bool SimpleQueue::hasInterface(AbstractAction::uid_t uid)
 {
     return pimpl->hasInterface(uid);
 }
+
+DAL_PIMPL_DEFAULT_CONSTRUCTOR(SimpleQueue)
+DAL_PIMPL_DEFAULT_DESTRUCTOR(SimpleQueue)

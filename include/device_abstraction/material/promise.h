@@ -6,13 +6,19 @@
 #include "actionabstract.h"
 #include "responseabstract.h"
 
+namespace dal { ////////////////////////////////////////////////////////////////
+/**
+ * @brief The PromiseAction class
+ */
 class PromiseAction : public PriorityAction
 {
 public:
     std::promise<AbstractResponse::responseHandle_t> promise;
 
 };
-
+/**
+ * @brief The PromiseResponse class
+ */
 class PromiseResponse : public AbstractResponse
 {
 public:
@@ -26,5 +32,7 @@ public:
     std::promise<AbstractResponse::responseHandle_t> promise;
 
 };
+
+} //////////////////////////////////////////////////////////////////////////////
 
 #endif // PROMISE_H

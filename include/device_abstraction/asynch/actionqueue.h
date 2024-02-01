@@ -6,6 +6,10 @@
 #include "../dalcore.h"
 #include "../material/actionabstract.h"
 
+namespace dal { ////////////////////////////////////////////////////////////////
+/**
+ * @brief The QueueInterface class
+ */
 class QueueInterface
 {
 public:
@@ -50,7 +54,9 @@ public:
     virtual bool hasInterface       (AbstractAction::uid_t)  = 0;
 
 };
-
+/**
+ * @brief The SimpleQueue class
+ */
 class SimpleQueue : public QueueInterface
 {
 public:
@@ -76,5 +82,7 @@ private:
     DAL_DECLARE_PIMPL
 
 };
+
+} //////////////////////////////////////////////////////////////////////////////
 
 #endif // ACTIONQUEUE_H

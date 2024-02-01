@@ -6,6 +6,8 @@
 #include "../dalcore.h"
 #include "actionqueue.h"
 #include "../drivers/adapterinterface.h"
+
+namespace dal { ////////////////////////////////////////////////////////////////
 /**
  * @brief The QueueManager class
  */
@@ -65,5 +67,7 @@ private:
     DAL_DECLARE_PIMPL
 
 };
+
+} //////////////////////////////////////////////////////////////////////////////
 
 #endif // QUEUEMANAGER_H

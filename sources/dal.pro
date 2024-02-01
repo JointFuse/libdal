@@ -24,8 +24,6 @@ SOURCES += \
         device_abstraction/asynch/actionqueue.cpp \
         device_abstraction/asynch/queuemanager.cpp \
         device_abstraction/devicexternal.cpp \
-        device_abstraction/drivers/dbadapter.cpp \
-        device_abstraction/drivers/ptzadapter.cpp \
         device_abstraction/qbased/qasynchinterface.cpp \
         device_abstraction/qbased/qsimplemanager.cpp \
 
@@ -39,11 +37,7 @@ HEADERS += \
     ../include/device_abstraction/asynch/queuemanager.h \
     ../include/device_abstraction/devicexternal.h \
     ../include/device_abstraction/drivers/adapterinterface.h \
-    ../include/device_abstraction/drivers/dbadapter.h \
-    ../include/device_abstraction/drivers/ptzadapter.h \
     ../include/device_abstraction/material/actionabstract.h \
-    ../include/device_abstraction/material/concreteaction.h \
-    ../include/device_abstraction/material/concreteresponse.h \
     ../include/device_abstraction/material/responseabstract.h \
     ../include/device_abstraction/qbased/qasynchinterface.h \
     ../include/device_abstraction/qbased/qsimplemanager.h \

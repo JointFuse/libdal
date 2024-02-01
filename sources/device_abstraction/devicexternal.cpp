@@ -4,6 +4,8 @@
 #include <iostream>
 #include <future>
 
+using namespace dal;
+
 class DeviceInterface::_impl
 {
 public:

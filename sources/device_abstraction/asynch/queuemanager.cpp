@@ -15,6 +15,8 @@
 #include <math.h>
 #endif
 
+using namespace dal;
+
 class QueueManager::_impl
 {
 public:
@@ -157,11 +159,6 @@ QueueManager::QueueManager(std::unique_ptr<DeviceDriver> executor,
 
 }
 
-QueueManager::~QueueManager()
-{
-
-}
-
 bool QueueManager::isWorking() const
 {
     return pimpl->isWorking();
@@ -171,11 +168,6 @@ SimpleManager::SimpleManager(std::unique_ptr<DeviceDriver> executor,
                              SimpleQueue::handle_t queue)
     : QueueManager{ std::move(executor), queue }
     , pimpl{ std::make_unique<_impl>(this) }
-{
-
-}
-
-SimpleManager::~SimpleManager()
 {
 
 }
@@ -198,12 +190,11 @@ AsynchRespondManager::AsynchRespondManager(std::unique_ptr<DeviceDriver> executo
 
 }
 
-AsynchRespondManager::~AsynchRespondManager()
-{
-
-}
-
 void AsynchRespondManager::sendClientResponse(AbstractResponse::responseHandle_t res)
 {
     pimpl->sendClientResponse(std::move(res));
 }
+
+DAL_PIMPL_DEFAULT_DESTRUCTOR(QueueManager)
+DAL_PIMPL_DEFAULT_DESTRUCTOR(SimpleManager)
+DAL_PIMPL_DEFAULT_DESTRUCTOR(AsynchRespondManager)

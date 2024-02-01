@@ -18,6 +18,8 @@
 
 #define PROMISE
 
+using namespace dal;
+
 struct CalcTimeoutAction :
 #ifdef PROMISE
                            public PromiseAction
@@ -180,7 +182,7 @@ public:
             hz /= std::pow(10, 9);
             hz /= pts.size() - 1;
             hz = 1 / hz;
-            hz /= std::pow(10, 6);
+            hz /= std::pow(10, 3);
 
             std::sort(durations.begin(), durations.end());
             auto median = durations[durations.size() / 2] / std::pow(10, 6);

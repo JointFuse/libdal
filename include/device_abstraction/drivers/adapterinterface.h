@@ -6,8 +6,14 @@
 #include "../material/actionabstract.h"
 #include "../material/responseabstract.h"
 
+namespace dal { ////////////////////////////////////////////////////////////////
+/**
+ * @brief The driver_error class
+ */
 class driver_error : public std::runtime_error { };
-
+/**
+ * @brief The DeviceDriver class
+ */
 class DeviceDriver
 {
 public:
@@ -23,5 +29,7 @@ public:
                 const AbstractAction::actionHandle_t&) = 0;
 
 };
+
+} //////////////////////////////////////////////////////////////////////////////
 
 #endif // ADAPTERINTERFACE_H

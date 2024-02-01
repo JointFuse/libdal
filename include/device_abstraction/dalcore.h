@@ -10,6 +10,6 @@ ClassName::ClassName() : pimpl{ std::make_unique<_impl>() } {}
 #define DAL_PIMPL_THIS_CONSTRUCTOR(ClassName) \
 ClassName::ClassName() : pimpl{ std::make_unique<_impl>(this) } {}
 #define DAL_PIMPL_DEFAULT_DESTRUCTOR(ClassName) \
-ClassName::~ClassName() {}
+ClassName::~ClassName() = default;
 
 #endif // DALCORE_H

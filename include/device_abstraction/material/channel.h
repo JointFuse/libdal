@@ -5,10 +5,12 @@
 #include <atomic>
 #include <type_traits>
 
-namespace dal {
+namespace dal { ////////////////////////////////////////////////////////////////
 
 using namespace std;
-
+/**
+ * @brief The MutexChannel class
+ */
 template<typename T>
 class MutexChannel
 {
@@ -31,7 +33,9 @@ private:
     recursive_mutex m_access;
 
 };
-
+/**
+ * @brief The AtomicChannel class
+ */
 template<typename T>
 class AtomicChannel
 {
@@ -51,10 +55,14 @@ private:
     atomic<T> m_data;
 
 };
-
+/**
+ * @brief The Channel class
+ */
 template<typename T, typename = void>
 class Channel {};
-
+/**
+ *
+ */
 template<typename T>
 class Channel<T, enable_if_t<is_trivially_copyable_v<T> &&
                             is_copy_constructible_v<T> &&
@@ -65,7 +73,9 @@ class Channel<T, enable_if_t<is_trivially_copyable_v<T> &&
 {
     using AtomicChannel<T>::AtomicChannel;
 };
-
+/**
+ *
+ */
 template<typename T>
 class Channel<T, enable_if_t<!is_trivially_copyable_v<T> ||
                             !is_copy_constructible_v<T> ||
@@ -77,6 +87,6 @@ class Channel<T, enable_if_t<!is_trivially_copyable_v<T> ||
     using MutexChannel<T>::MutexChannel;
 };
 
-}
+} //////////////////////////////////////////////////////////////////////////////
 
 #endif // CHANNEL_H
