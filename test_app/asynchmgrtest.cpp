@@ -16,7 +16,7 @@
 #include "device_abstraction/devicexternal.h"
 #include "device_abstraction/drivers/adapterinterface.h"
 
-#define PROMISE
+//#define PROMISE
 
 using namespace dal;
 

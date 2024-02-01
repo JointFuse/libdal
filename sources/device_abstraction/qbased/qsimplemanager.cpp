@@ -39,7 +39,7 @@ public:
             // supports copying, so it has to get rid of the
             // smart pointer wrapper, which potentially leads
             // to a memory leak
-            Q_ARG(AbstractResponse*, resp.release())
+            Q_ARG(dal::AbstractResponse*, resp.release())
             );
     }
 };

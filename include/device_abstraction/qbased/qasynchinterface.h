@@ -35,7 +35,7 @@ class QAsynchInterface : public QObject, public QBaseInterface
     Q_OBJECT
 
 public slots:
-    void responseReciever(AbstractResponse*);
+    void responseReciever(dal::AbstractResponse*);
 
 public:
     QAsynchInterface(SimpleQueue::handle_t,
