@@ -5,7 +5,7 @@
 
 #include "../asynch/queuemanager.h"
 
-class QSimpleManager : public QObject, public AsynchRespondManager
+class QBaseManager : public QObject, public AsynchRespondManager
 {
     Q_OBJECT
 
@@ -14,6 +14,27 @@ public slots:
 
 public:
     using AsynchRespondManager::AsynchRespondManager;
+
+};
+
+class QSimpleManager : public QBaseManager
+{
+    Q_OBJECT
+
+public:
+    using QBaseManager::QBaseManager;
+
+protected:
+    void responseSender(AbstractResponse::responseHandle_t);
+
+};
+
+class QPromiseManager : public QBaseManager
+{
+    Q_OBJECT
+
+public:
+    using QBaseManager::QBaseManager;
 
 protected:
     void responseSender(AbstractResponse::responseHandle_t);

@@ -8,6 +8,7 @@
 #include <QDebug>
 
 #include "asynchmgrtest.h"
+#include "../include/device_abstraction/material/channel.h"
 
 using derivedType = int;
 

@@ -1,8 +1,26 @@
 #include "qasynchinterface.h"
 
 #include <QMetaObject>
+#include <QDebug>
 
 #include "qsimplemanager.h"
+
+QBaseInterface::QBaseInterface(
+    SimpleQueue::handle_t que,
+    std::shared_ptr<QueueManager> mgr)
+    : QueuedAsynchInterface{ que, mgr }
+{
+
+}
+
+void QBaseInterface::startAsynchQueueProcessing(std::shared_ptr<QueueManager> mgr)
+{
+    QMetaObject::invokeMethod(
+        (QBaseManager*)mgr.get(),
+        "invocationSlot",
+        Qt::QueuedConnection
+    );
+}
 
 void QAsynchInterface::responseReciever(AbstractResponse* resp)
 {
@@ -14,23 +32,4 @@ void QAsynchInterface::responseReciever(AbstractResponse* resp)
     // to the transfer of memory control to more than one smart
     // pointer, which causes undefined behavior
     notifyOwner(AbstractResponse::responseHandle_t{ resp });
-}
-
-QAsynchInterface::QAsynchInterface(
-    SimpleQueue::handle_t que,
-    std::shared_ptr<QueueManager> mgr,
-    QObject* parent)
-    : QObject{ parent }
-    , QueuedAsynchInterface{ que, mgr }
-{
-
-}
-
-void QAsynchInterface::startAsynchQueueProcessing(std::shared_ptr<QueueManager> mgr)
-{
-    QMetaObject::invokeMethod(
-        (QSimpleManager*)mgr.get(),
-        "invocationSlot",
-        Qt::QueuedConnection
-    );
 }

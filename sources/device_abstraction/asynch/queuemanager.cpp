@@ -7,12 +7,12 @@
 #include <future>
 #include <thread>
 #include <mutex>
+#include <QDebug>
 
 //#define TIMINGTEST
 #ifdef TIMINGTEST
 #include <chrono>
 #include <math.h>
-#include <QDebug>
 #endif
 
 class QueueManager::_impl
@@ -60,16 +60,16 @@ public:
         {
             auto act{ m_base->QueueManager::pimpl->m_queue->pop_front() };
 
-            if (!m_base->QueueManager::pimpl->m_queue->hasInterface(act->requestor()) ||
-                !m_base->QueueManager::pimpl->m_queue->tryLockInterface(act->requestor()))
+            if (act->requestor() != nullptr &&
+                (!m_base->QueueManager::pimpl->m_queue->hasInterface(act->requestor()) ||
+                 !m_base->QueueManager::pimpl->m_queue->tryLockInterface(act->requestor())))
                 continue;
 
             try {
-                auto res = m_base->QueueManager::pimpl->m_executor->executeAction(act);
 #ifdef TIMINGTEST
                 const auto start = std::chrono::high_resolution_clock::now();
 #endif
-                m_base->sendClientResponse(std::move(res));
+                m_base->processAction(act);
 #ifdef TIMINGTEST
                 durations.push_back((std::chrono::high_resolution_clock::now() - start).count());
 #endif
@@ -101,6 +101,11 @@ public:
     catch(std::exception& e){
         m_base->QueueManager::pimpl->m_isWorking = false;
         throw e;
+    }
+
+    void processAction(AbstractAction::actionHandle_t& act) {
+        auto res = m_base->QueueManager::pimpl->m_executor->executeAction(act);
+        m_base->sendClientResponse(std::move(res));
     }
 
 private:
@@ -178,6 +183,11 @@ SimpleManager::~SimpleManager()
 void SimpleManager::processQueue()
 {
     pimpl->processQueue();
+}
+
+void SimpleManager::processAction(AbstractAction::actionHandle_t& act)
+{
+    pimpl->processAction(act);
 }
 
 AsynchRespondManager::AsynchRespondManager(std::unique_ptr<DeviceDriver> executor,

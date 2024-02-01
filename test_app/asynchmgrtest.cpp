@@ -11,11 +11,19 @@
 #include "device_abstraction/qbased/qasynchinterface.h"
 #include "device_abstraction/qbased/qsimplemanager.h"
 #include "device_abstraction/material/actionabstract.h"
+#include "device_abstraction/material/promise.h"
 #include "device_abstraction/material/responseabstract.h"
 #include "device_abstraction/devicexternal.h"
 #include "device_abstraction/drivers/adapterinterface.h"
 
-struct CalcTimeoutAction : public PriorityAction
+#define PROMISE
+
+struct CalcTimeoutAction :
+#ifdef PROMISE
+                           public PromiseAction
+#else
+                           public PriorityAction
+#endif
 {
     CalcTimeoutAction()
     {}
@@ -23,12 +31,21 @@ struct CalcTimeoutAction : public PriorityAction
     std::chrono::high_resolution_clock::time_point request_time;
 };
 
-struct ExecutionTimeoutResp : public AbstractResponse
+struct ExecutionTimeoutResp :
+#ifdef PROMISE
+                              public PromiseResponse
+#else
+                              public AbstractResponse
+#endif
 {
-    ExecutionTimeoutResp(const CalcTimeoutAction& rhs)
-        : AbstractResponse{ rhs.requestor() }
+    ExecutionTimeoutResp(CalcTimeoutAction* rhs)
+#ifdef PROMISE
+        : PromiseResponse{ rhs }
+#else
+        : AbstractResponse{ rhs->requestor() }
+#endif
         , exec_time{ std::chrono::high_resolution_clock::now() }
-        , exec_timeout{ exec_time - rhs.request_time }
+        , exec_timeout{ exec_time - rhs->request_time }
     {}
 
     std::chrono::high_resolution_clock::time_point exec_time;
@@ -44,22 +61,40 @@ public:
     AbstractResponse::responseHandle_t executeAction(
         const AbstractAction::actionHandle_t& act) {
         const auto tm = (CalcTimeoutAction*)act.get();
-        auto res = AbstractResponse::responseHandle_t{ new ExecutionTimeoutResp(*tm) };
+        auto res = AbstractResponse::responseHandle_t{ new ExecutionTimeoutResp(tm) };
         return res;
     }
 };
 
-class TestInterface : public QAsynchInterface
+class TestInterface :
+#ifdef PROMISE
+                      public QBaseInterface
+{
+public:
+    using QBaseInterface::QBaseInterface;
+};
+#else
+                     public QAsynchInterface
 {
 public:
     using QAsynchInterface::QAsynchInterface;
 };
+#endif
 
-class TestManager : public QSimpleManager
+class TestManager :
+#ifdef PROMISE
+                    public QPromiseManager
+{
+public:
+    using QPromiseManager::QPromiseManager;
+};
+#else
+                    public QSimpleManager
 {
 public:
     using QSimpleManager::QSimpleManager;
 };
+#endif
 
 class AbstractionTestDevice : public LogicDevice
 {
@@ -87,17 +122,39 @@ public:
             pts.reserve(sz);
             respDurations.reserve(sz);
 
+#ifdef PROMISE
+            auto ftrBuf = std::vector<std::future<AbstractResponse::responseHandle_t>>{};
+            ftrBuf.reserve(sz);
+#endif
             auto actBuf = std::vector<AbstractAction::actionHandle_t>{};
             actBuf.reserve(sz);
             for (auto i = 0; i < sz; ++i)
-                actBuf.push_back(AbstractAction::actionHandle_t(new CalcTimeoutAction));
+            {
+                auto act = new CalcTimeoutAction;
+                actBuf.push_back(AbstractAction::actionHandle_t(act));
+#ifdef PROMISE
+                ftrBuf.push_back(act->promise.get_future());
+#endif
+            }
             for (auto i = 0; i < sz; ++i)
             {
                 const auto time = std::chrono::high_resolution_clock::now();
                 ((CalcTimeoutAction*)actBuf[i].get())->request_time = time;
                 interface()->execute(std::move(actBuf[i]));
             }
+#ifdef PROMISE
+            for (auto& ftr : ftrBuf)
+            try {
+                auto abs_resp = ftr.get();
+                const auto resp = (ExecutionTimeoutResp*)abs_resp.get();
+                durations.push_back(resp->exec_timeout.count());
+                pts.push_back(resp->exec_time);
+                respDurations.push_back((std::chrono::high_resolution_clock::now() - resp->exec_time).count());
+            }
+            catch(...) {
 
+            }
+#else
             auto szBuf = 0;
             const auto startPoint = std::chrono::high_resolution_clock::now();
             while (szBuf < sz && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startPoint).count() < 10000)
@@ -105,7 +162,7 @@ public:
                 qApp->processEvents(QEventLoop::ProcessEventsFlag::WaitForMoreEvents, WAITTIME);
                 szBuf = durations.size();
             }
-
+#endif
             auto avarage = double(.0);
             for (auto val : durations)
                 avarage += val;
@@ -120,11 +177,13 @@ public:
             auto hz = double();
             for (auto i = 1; i < pts.size(); ++i)
                 hz += (pts[i] - pts[i - 1]).count();
+            hz /= std::pow(10, 9);
             hz /= pts.size() - 1;
-            hz = std::pow(10, 6) / hz;
+            hz = 1 / hz;
+            hz /= std::pow(10, 6);
 
             std::sort(durations.begin(), durations.end());
-            auto moda = durations[durations.size() / 2] / std::pow(10, 6);
+            auto median = durations[durations.size() / 2] / std::pow(10, 6);
 
             auto avarageRes = double(.0);
             for (auto val : respDurations)
@@ -138,9 +197,9 @@ public:
                     << "Avarage response duration: " << avarageRes << "ms\n"
                     << "Execution timeout:\n"
                     << "\tavarage:\t" << avarage << "ms\n"
-                    << "\tmoda:\t" << moda << "ms\n"
+                    << "\tmedian:\t" << median << "ms\n"
                     << "\tdispersion:\t" << dispersion << "ms\n"
-                    << "Execution frequency: " << hz << "kHz\n";
+                    << "Execution frequency: " << hz << "KHz\n";
         }
     }
 
@@ -180,6 +239,8 @@ AsynchMgrTest::~AsynchMgrTest()
 void AsynchMgrTest::threads()
 {
     ((TestManager*)  mgr)->moveToThread(&m_thread);
+#ifndef PROMISE
     ((TestInterface*)inf)->moveToThread(thread());
+#endif
 }
 

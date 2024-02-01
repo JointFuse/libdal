@@ -5,7 +5,9 @@ CONFIG += sharedlib
 
 DESTDIR = $$PWD/../lib
 TEMPLATE = lib
-TARGET = dal
+
+CONFIG(release, debug|release): TARGET = dal
+CONFIG(debug, debug|release): TARGET = dal_debug
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -45,4 +47,6 @@ HEADERS += \
     ../include/device_abstraction/material/responseabstract.h \
     ../include/device_abstraction/qbased/qasynchinterface.h \
     ../include/device_abstraction/qbased/qsimplemanager.h \
-    ../include/device_abstraction/dalcore.h
+    ../include/device_abstraction/dalcore.h \
+    ../include/device_abstraction/material/channel.h \
+    ../include/device_abstraction/material/promise.h

@@ -20,7 +20,7 @@ public:
     uid_t requestor() const noexcept { return m_requestor; }
 
 private:
-    uid_t m_requestor;
+    uid_t m_requestor{ nullptr };
 
 };
 

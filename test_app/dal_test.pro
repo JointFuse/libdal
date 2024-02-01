@@ -24,4 +24,6 @@ HEADERS += \
 
 INCLUDEPATH += $$PWD/../include
 DEPENDPATH += $$PWD/../include
-LIBS += -L$$PWD/../lib/ -ldal
+
+CONFIG(release, debug|release): LIBS += -L$$PWD/../lib/ -ldal
+CONFIG(debug, debug|release): LIBS += -L$$PWD/../lib/ -ldal_debug

@@ -70,38 +70,45 @@ public:
 
     void lockInterface(AbstractAction::uid_t uid)
     {
+        const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
         m_synch[uid].lock();
     }
 
     void unlockInterface(AbstractAction::uid_t uid)
     {
+        const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
         m_synch[uid].unlock();
     }
 
     bool tryLockInterface(AbstractAction::uid_t uid)
     {
+        const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
         return m_synch[uid].try_lock();
     }
 
     void registerInterface(AbstractAction::uid_t uid)
     {
+        const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
         m_synch[uid];
     }
 
     void removeInterface(AbstractAction::uid_t uid)
     {
+        const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
         if (hasInterface(uid))
             m_synch.erase(m_synch.find(uid));
     }
 
     bool hasInterface(AbstractAction::uid_t uid)
     {
+        const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
         return m_synch.find(uid) != m_synch.end();
     }
 
 private:
     container_t m_queue;
     std::map<AbstractAction::uid_t, std::mutex> m_synch;
+    std::recursive_mutex m_synchMutex;
     std::mutex m_queueSynch;
 
 };

@@ -8,7 +8,18 @@
 
 Q_DECLARE_METATYPE(AbstractResponse*)
 
-class QAsynchInterface : public QObject, public QueuedAsynchInterface
+class QBaseInterface : public QueuedAsynchInterface
+{
+public:
+    QBaseInterface(SimpleQueue::handle_t,
+                   std::shared_ptr<QueueManager>);
+
+protected:
+    void startAsynchQueueProcessing(std::shared_ptr<QueueManager>) override;
+
+};
+
+class QAsynchInterface : public QObject, public QBaseInterface
 {
     Q_OBJECT
 
@@ -16,12 +27,7 @@ public slots:
     void responseReciever(AbstractResponse*);
 
 public:
-    QAsynchInterface(SimpleQueue::handle_t,
-                     std::shared_ptr<QueueManager>,
-                     QObject* parent = nullptr);
-
-protected:
-    void startAsynchQueueProcessing(std::shared_ptr<QueueManager>) override;
+    using QBaseInterface::QBaseInterface;
 
 };
 

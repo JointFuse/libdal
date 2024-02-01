@@ -40,6 +40,7 @@ public:
     void processQueue() override;
 
 protected:
+    virtual void processAction(AbstractAction::actionHandle_t&);
     virtual void sendClientResponse(AbstractResponse::responseHandle_t) = 0;
 
 private:

@@ -111,7 +111,7 @@ public:
             throw std::runtime_error{"asynchronous interface initialized "
                                      "with NULL manager handle"};
 
-        m_queue->registerInterface(base);
+        m_queue->registerInterface(m_base);
     }
 
     ~_impl() {

@@ -6,8 +6,9 @@
 #include <QThread>
 
 #include "qasynchinterface.h"
+#include "../material/promise.h"
 
-void QSimpleManager::invocationSlot()
+void QBaseManager::invocationSlot()
 {
     processQueue();
 }
@@ -27,3 +28,11 @@ void QSimpleManager::responseSender(AbstractResponse::responseHandle_t resp)
         Q_ARG(AbstractResponse*, resp.release())
     );
 }
+
+void QPromiseManager::responseSender(AbstractResponse::responseHandle_t resp)
+{
+    auto promResp = (PromiseResponse*)resp.get();
+    auto prom = decltype(promResp->promise){ std::move(promResp->promise) };
+    prom.set_value(std::move(resp));
+}
+
