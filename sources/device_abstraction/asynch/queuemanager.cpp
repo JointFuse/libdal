@@ -58,13 +58,13 @@ public:
 #ifdef TIMINGTEST
         auto durations = std::vector<std::chrono::high_resolution_clock::duration::rep>{};
 #endif
-        while (m_base->QueueManager::pimpl->m_queue->queueSize())
-        {
-            auto act{ m_base->QueueManager::pimpl->m_queue->pop_front() };
+        auto act = AbstractAction::actionHandle_t{};
 
+        while (m_base->QueueManager::pimpl->m_queue->pop_front(act))
+        {
             if (act->requestor() != nullptr &&
-                (!m_base->QueueManager::pimpl->m_queue->hasInterface(act->requestor()) ||
-                 !m_base->QueueManager::pimpl->m_queue->tryLockInterface(act->requestor())))
+                !m_base->QueueManager::pimpl->m_queue->tryLockInterface(
+                    act->requestor()))
                 continue;
 
             try {

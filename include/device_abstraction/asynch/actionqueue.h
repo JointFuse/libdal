@@ -37,21 +37,24 @@ public:
 public:
     virtual ~QueueInterface() = default;
 
-    virtual void push_back  (AbstractAction::actionHandle_t) = 0;
-    virtual void push_front (AbstractAction::actionHandle_t) = 0;
+    virtual void push_back  (AbstractAction::actionHandle_t)    = 0;
+    virtual void push_front (AbstractAction::actionHandle_t)    = 0;
 
-    virtual AbstractAction::actionHandle_t pop_back ()       = 0;
-    virtual AbstractAction::actionHandle_t pop_front()       = 0;
+    virtual AbstractAction::actionHandle_t pop_back ()          = 0;
+    virtual AbstractAction::actionHandle_t pop_front()          = 0;
 
-    virtual void clear      ()                               = 0;
-    virtual int queueSize   () const                         = 0;
+    virtual bool pop_back(AbstractAction::actionHandle_t&)      = 0;
+    virtual bool pop_front(AbstractAction::actionHandle_t&)     = 0;
 
-    virtual void lockInterface      (AbstractAction::uid_t)  = 0;
-    virtual void unlockInterface    (AbstractAction::uid_t)  = 0;
-    virtual bool tryLockInterface   (AbstractAction::uid_t)  = 0;
-    virtual void registerInterface  (AbstractAction::uid_t)  = 0;
-    virtual void removeInterface    (AbstractAction::uid_t)  = 0;
-    virtual bool hasInterface       (AbstractAction::uid_t)  = 0;
+    virtual void clear      ()                                  = 0;
+    virtual int queueSize   () const                            = 0;
+
+    virtual void lockInterface      (AbstractAction::uid_t)     = 0;
+    virtual void unlockInterface    (AbstractAction::uid_t)     = 0;
+    virtual bool tryLockInterface   (AbstractAction::uid_t)     = 0;
+    virtual void registerInterface  (AbstractAction::uid_t)     = 0;
+    virtual void removeInterface    (AbstractAction::uid_t)     = 0;
+    virtual bool hasInterface       (AbstractAction::uid_t)     = 0;
 
 };
 /**
@@ -63,20 +66,24 @@ public:
     SimpleQueue();
     ~SimpleQueue();
 
-    void push_back  (AbstractAction::actionHandle_t) override;
-    void push_front (AbstractAction::actionHandle_t) override;
-    AbstractAction::actionHandle_t pop_back () override;
-    AbstractAction::actionHandle_t pop_front() override;
+    void push_back  (AbstractAction::actionHandle_t)    override;
+    void push_front (AbstractAction::actionHandle_t)    override;
 
-    void clear() override;
-    int queueSize() const override;
+    AbstractAction::actionHandle_t pop_back ()          override;
+    AbstractAction::actionHandle_t pop_front()          override;
 
-    void lockInterface      (AbstractAction::uid_t) override;
-    void unlockInterface    (AbstractAction::uid_t) override;
-    bool tryLockInterface   (AbstractAction::uid_t) override;
-    void registerInterface  (AbstractAction::uid_t) override;
-    void removeInterface    (AbstractAction::uid_t) override;
-    bool hasInterface       (AbstractAction::uid_t) override;
+    bool pop_back   (AbstractAction::actionHandle_t&)   override;
+    bool pop_front  (AbstractAction::actionHandle_t&)   override;
+
+    void clear      ()                                  override;
+    int queueSize   ()                                  const override;
+
+    void lockInterface      (AbstractAction::uid_t)     override;
+    void unlockInterface    (AbstractAction::uid_t)     override;
+    bool tryLockInterface   (AbstractAction::uid_t)     override;
+    void registerInterface  (AbstractAction::uid_t)     override;
+    void removeInterface    (AbstractAction::uid_t)     override;
+    bool hasInterface       (AbstractAction::uid_t)     override;
 
 private:
     DAL_DECLARE_PIMPL

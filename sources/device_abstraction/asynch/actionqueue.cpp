@@ -56,6 +56,38 @@ public:
         return {};
     }
 
+    bool pop_back(AbstractAction::actionHandle_t& hndl)
+    try {
+        const std::lock_guard<decltype(m_queueSynch)> mutex_lock(m_queueSynch);
+
+        if (m_queue.empty())
+            return false;
+
+        hndl.swap(m_queue.back());
+        m_queue.pop_back();
+        return true;
+    }
+    catch(std::system_error& err) {
+        std::cerr << err.what() << std::endl;
+        return {};
+    }
+
+    bool pop_front(AbstractAction::actionHandle_t& hndl)
+    try {
+        const std::lock_guard<decltype(m_queueSynch)> mutex_lock(m_queueSynch);
+
+        if (m_queue.empty())
+            return false;
+
+        hndl.swap(m_queue.front());
+        m_queue.pop_front();
+        return true;
+    }
+    catch(std::system_error& err) {
+        std::cerr << err.what() << std::endl;
+        return {};
+    }
+
     void clear()
     try {
         const std::lock_guard<decltype(m_queueSynch)> mutex_lock(m_queueSynch);
@@ -85,7 +117,7 @@ public:
     bool tryLockInterface(AbstractAction::uid_t uid)
     {
         const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
-        return m_synch[uid].try_lock();
+        return m_synch.find(uid) != m_synch.end() && m_synch[uid].try_lock();
     }
 
     void registerInterface(AbstractAction::uid_t uid)
@@ -133,6 +165,17 @@ AbstractAction::actionHandle_t SimpleQueue::pop_back()
 AbstractAction::actionHandle_t SimpleQueue::pop_front()
 {
     return pimpl->pop_front();
+}
+
+bool SimpleQueue::pop_back(AbstractAction::actionHandle_t& hndl)
+{
+    return pimpl->pop_back(hndl);
+}
+
+bool SimpleQueue::pop_front(AbstractAction::actionHandle_t& hndl)
+{
+
+    return pimpl->pop_front(hndl);
 }
 
 void SimpleQueue::clear()
