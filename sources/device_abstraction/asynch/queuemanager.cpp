@@ -77,11 +77,16 @@ public:
 #endif
             }
             catch(std::exception& e) {
-                m_base->QueueManager::pimpl->m_queue->unlockInterface(act->requestor());
+                if (act->requestor())
+                    m_base->QueueManager::pimpl->m_queue->unlockInterface(
+                        act->requestor());
+
                 throw e;
             }
 
-            m_base->QueueManager::pimpl->m_queue->unlockInterface(act->requestor());
+            if (act->requestor())
+                m_base->QueueManager::pimpl->m_queue->unlockInterface(
+                    act->requestor());
         }
 
 #ifdef TIMINGTEST
@@ -107,7 +112,9 @@ public:
 
     void processAction(AbstractAction::actionHandle_t& act) {
         auto res = m_base->QueueManager::pimpl->m_executor->executeAction(act);
-        m_base->sendClientResponse(std::move(res));
+
+        if (act->requestor())
+            m_base->sendClientResponse(std::move(res));
     }
 
 private:
