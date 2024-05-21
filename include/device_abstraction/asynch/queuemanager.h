@@ -43,7 +43,7 @@ public:
 
 protected:
     virtual void processAction(AbstractAction::actionHandle_t&);
-    virtual void sendClientResponse(AbstractResponse::responseHandle_t) = 0;
+    virtual void sendClientResponse(AbstractResponse::responseHandle_t);
 
 private:
     DAL_DECLARE_PIMPL

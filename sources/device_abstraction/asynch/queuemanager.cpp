@@ -9,6 +9,8 @@
 #include <mutex>
 #include <QDebug>
 
+#include "../devicexternal.h"
+
 //#define TIMINGTEST
 #ifdef TIMINGTEST
 #include <chrono>
@@ -117,6 +119,12 @@ public:
             m_base->sendClientResponse(std::move(res));
     }
 
+    void sendClientResponse(AbstractResponse::responseHandle_t act)
+    {
+        auto cli = act->requestor();
+        cli->notifyOwner(std::move(act));
+    }
+
 private:
     SimpleManager* m_base;
 
@@ -187,6 +195,11 @@ void SimpleManager::processQueue()
 void SimpleManager::processAction(AbstractAction::actionHandle_t& act)
 {
     pimpl->processAction(act);
+}
+
+void SimpleManager::sendClientResponse(AbstractResponse::responseHandle_t act)
+{
+    pimpl->sendClientResponse(std::move(act));
 }
 
 AsynchRespondManager::AsynchRespondManager(std::unique_ptr<DeviceDriver> executor,
