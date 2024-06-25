@@ -2,7 +2,7 @@
 #define ACTIONABSTRACT_H
 
 #include <memory>
-
+#include <functional>
 
 namespace dal { ////////////////////////////////////////////////////////////////
 
@@ -49,6 +49,22 @@ public:
 
 private:
     ActionPriority m_priority = Default;
+
+};
+/**
+ * @brief The ReadyAction class
+ */
+class ReadyAction : public AbstractAction
+{
+public:
+    ReadyAction(std::function<bool(void)> pred)
+        : m_predicate{ pred }
+    {}
+
+    bool isReady() const { return m_predicate(); }
+
+private:
+    std::function<bool(void)> m_predicate;
 
 };
 

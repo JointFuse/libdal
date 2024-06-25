@@ -85,6 +85,29 @@ public:
     void removeInterface    (AbstractAction::uid_t)     override;
     bool hasInterface       (AbstractAction::uid_t)     override;
 
+protected:
+    DAL_DECLARE_PIMPL
+
+};
+/**
+ * @brief The FroQueue class
+ * @abstract First ready out queue
+ */
+class FroQueue : public SimpleQueue
+{
+public:
+    FroQueue();
+    ~FroQueue();
+
+    void push_back  (AbstractAction::actionHandle_t)    override;
+    void push_front (AbstractAction::actionHandle_t)    override;
+
+    AbstractAction::actionHandle_t pop_back ()          override;
+    AbstractAction::actionHandle_t pop_front()          override;
+
+    bool pop_back   (AbstractAction::actionHandle_t&)   override;
+    bool pop_front  (AbstractAction::actionHandle_t&)   override;
+
 private:
     DAL_DECLARE_PIMPL
 
