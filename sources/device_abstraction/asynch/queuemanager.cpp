@@ -64,9 +64,10 @@ public:
 
         while (m_base->QueueManager::pimpl->m_queue->pop_front(act))
         {
-            if (act->requestor() != nullptr &&
-                !m_base->QueueManager::pimpl->m_queue->tryLockInterface(
-                    act->requestor()))
+            if (!act ||
+                (act->requestor() != nullptr &&
+                 !m_base->QueueManager::pimpl->m_queue->tryLockInterface(
+                     act->requestor())))
                 continue;
 
             try {
