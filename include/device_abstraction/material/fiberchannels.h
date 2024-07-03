@@ -5,8 +5,8 @@
 #include <atomic>
 #include <type_traits>
 #include <condition_variable>
-#include <vector>
 #include <functional>
+#include <map>
 #include <set>
 #include <chrono>
 
@@ -15,93 +15,116 @@ namespace dal { ////////////////////////////////////////////////////////////////
 template<typename T>
 class DecoChannel
 {
+private:
+    template<typename Key, typename TT>
+    friend class MultiChannel;
+
 public:
-    DecoChannel() = default;
-    DecoChannel(std::function<void(std::function<void()>)> setterDecorator)
-        : m_setterDecorator{ setterDecorator }
+    DecoChannel()
+        : m_dataMutex{ std::make_shared<std::recursive_mutex>() }
+    {}
+    DecoChannel(std::function<void(std::function<void()>)> setterDecorator,
+                std::shared_ptr<std::recursive_mutex> mutex)
+        : m_dataMutex{ mutex }
+        , m_setterDecorator{ setterDecorator }
     {}
 
     void set(T newData) {
-        auto setter = [dt = std::forward(newData),
-                       &mtx = m_access,
+        auto setter = [dt = newData,
                        &internal = m_data]() {
-            auto lck = std::lock_guard<decltype(mtx)>{ mtx };
             internal = dt;
         };
 
         if (m_setterDecorator)
             m_setterDecorator(setter);
         else
-            setter();
+        {
+            auto lck = std::lock_guard<std::recursive_mutex>{ *m_dataMutex };
+            m_data = newData;
+        }
     }
     T get() {
-        auto lck = std::lock_guard<decltype(m_access)>{ m_access };
+        const auto lck = std::lock_guard<std::recursive_mutex>{ *m_dataMutex };
         return m_data;
     }
 
 private:
+    T get(std::shared_ptr<std::recursive_mutex> mtx) {
+        if (mtx && mtx.owner_before(m_dataMutex)) {
+            return m_data;
+        }
+        else
+            return get();
+    }
+
+private:
+    std::atomic_int m_getterCounter{ 0 };
     T m_data;
-    std::recursive_mutex m_access;
+    std::shared_ptr<std::recursive_mutex> m_dataMutex;
     const std::function<void(std::function<void()>)> m_setterDecorator;
 
 };
 
-template<typename T>
+template<typename Key, typename T>
 class MultiChannel
 {
     struct impl
     {
-        std::mutex accMtx;
-        std::condition_variable cv;
-        std::set<int> ready;
+        std::shared_ptr<std::recursive_mutex> accMtx{ std::make_shared<std::recursive_mutex>() };
+        std::condition_variable_any cv;
+        std::map<void*, std::set<Key>> ready;
     };
 
 public:
-    // NOTE support only creation of new channels, for removing need to
-    // rework implementation of methods where numbers used as
-    // identificators of concrete channel in vector container
-    std::shared_ptr<DecoChannel<T>> getChannel();
-    std::vector<T> any();
-//    T all();
+    std::shared_ptr<DecoChannel<T>> getChannel(Key k);
+    std::map<Key, T> any(void* reqId);
+//    std::map<Key, T> all();
 
 private:
-    std::shared_ptr<impl> m_impl;
-    std::vector<std::shared_ptr<DecoChannel<T>>> m_chnls;
+    std::shared_ptr<impl> m_impl{ std::make_shared<impl>() };
+    std::map<Key, std::shared_ptr<DecoChannel<T>>> m_chnls;
 
 };
 
-template<typename T>
-std::shared_ptr<DecoChannel<T>> MultiChannel<T>::getChannel()
+template<typename Key, typename T>
+std::shared_ptr<DecoChannel<T>> MultiChannel<Key, T>::getChannel(Key k)
 {
     auto decor = [impl = m_impl,
-                  curr = m_chnls.size()](std::function<void()> setter) {
-        const auto _ = std::lock_guard<decltype(impl->accMtx)>(impl->accMtx);
+                  curr = k](std::function<void()> setter) {
+        const auto _ = std::lock_guard<std::recursive_mutex>(*impl->accMtx);
         setter();
-        impl->ready.insert(curr);
+
+        for (auto& obj : impl->ready)
+            obj.second.insert(curr);
+
         impl->cv.notify_all();
     };
 
-    m_chnls.push_back(std::make_shared<DecoChannel<T>>(decor));
-    return m_chnls.back();
+    m_chnls[k] = std::make_shared<DecoChannel<T>>(decor, m_impl->accMtx);
+    return m_chnls[k];
 }
 
-template<typename T>
-std::vector<T> MultiChannel<T>::any()
+template<typename Key, typename T>
+std::map<Key, T> MultiChannel<Key, T>::any(void* reqId)
 {
     static constexpr auto TIMEOUT = std::chrono::milliseconds(3000);
 
-    const auto lck = std::unique_lock<decltype(m_impl->accMtx)>(m_impl->accMtx);
+    auto lck = std::unique_lock<std::recursive_mutex>(*m_impl->accMtx);
 
-    if (m_impl->ready.empty())
-        m_impl->cv.wait(lck, TIMEOUT);
+    if (m_impl->ready[reqId].empty())
+    {
+        const auto res = m_impl->cv.wait_for(lck, TIMEOUT);
 
-    auto res = std::vector<T>{};
-    res.reserve(m_impl->ready.size());
+        if (res == std::cv_status::timeout)
+            return {};
+    }
 
-    for (auto num : m_impl->ready)
-        res.push_back(m_chnls[num].get());
+    auto res = std::map<Key, T>{};
 
-    m_impl->ready.clear();
+    for (auto key : m_impl->ready[reqId])
+        res[key] = m_chnls[key]->get(m_impl->accMtx);
+
+    m_impl->ready[reqId].clear();
     return res;
 }
 
