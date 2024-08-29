@@ -12,11 +12,13 @@ class QBaseInterface::_impl
 public:
     void startAsynchQueueProcessing(std::shared_ptr<QueueManager> mgr)
     {
-        QMetaObject::invokeMethod(
-            (QBaseManager*)mgr.get(),
-            "invocationSlot",
-            Qt::QueuedConnection
-        );
+        auto qbased = dynamic_cast<QBaseManager*>(mgr.get());
+
+        if (!qbased)
+            throw std::runtime_error("invalid qbase manager subtype");
+
+        QMetaObject::invokeMethod
+            (qbased, "invocationSlot", Qt::QueuedConnection);
     }
 
 };
@@ -42,6 +44,7 @@ public:
 
 private:
     QAsynchInterface* m_base;
+
 };
 
 QBaseInterface::QBaseInterface(

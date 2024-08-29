@@ -54,7 +54,7 @@ private:
 /**
  * @brief The ReadyAction class
  */
-class ReadyAction : public AbstractAction
+class ReadyAction : public PriorityAction
 {
 public:
     ReadyAction(std::function<bool(void)> pred)

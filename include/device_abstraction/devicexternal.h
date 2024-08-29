@@ -1,7 +1,9 @@
 #ifndef DEVICEXTERNAL_H
 #define DEVICEXTERNAL_H
 
+#ifdef __cplusplus
 #include <memory>
+#endif
 
 #include "dalcore.h"
 #include "material/responseabstract.h"
