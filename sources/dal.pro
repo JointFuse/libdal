@@ -3,6 +3,8 @@ QT = core
 CONFIG += c++17 cmdline
 CONFIG += sharedlib
 
+QMAKE_APPLE_DEVICE_ARCHS = arm64
+
 DESTDIR = $$PWD/../lib
 TEMPLATE = lib
 
@@ -29,7 +31,7 @@ SOURCES += \
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
-else: unix:!android: target.path = /opt/$${TARGET}/bin
+else: unix:!android: target.path = /usr/lib
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \

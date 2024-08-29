@@ -60,7 +60,7 @@ public:
 #ifdef TIMINGTEST
         auto durations = std::vector<std::chrono::high_resolution_clock::duration::rep>{};
 #endif
-        auto act = AbstractAction::actionHandle_t{};
+        auto act = AbstractAction::actionHandle_t{ nullptr };
 
         while (m_base->QueueManager::pimpl->m_queue->pop_front(act))
         {
@@ -84,6 +84,7 @@ public:
                     m_base->QueueManager::pimpl->m_queue->unlockInterface(
                         act->requestor());
 
+                std::cerr << e.what() << std::endl;
                 throw e;
             }
 
@@ -110,6 +111,7 @@ public:
     }
     catch(std::exception& e){
         m_base->QueueManager::pimpl->m_isWorking = false;
+        std::cerr << e.what() << std::endl;
         throw e;
     }
 

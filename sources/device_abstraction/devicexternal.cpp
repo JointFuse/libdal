@@ -123,7 +123,12 @@ public:
 
     void processAction(AbstractAction::actionHandle_t act)
     {
-        auto priority = ((PriorityAction*)act.get())->priority();
+        auto priAct = dynamic_cast<PriorityAction*>(act.get());
+
+        if (!priAct)
+            throw std::runtime_error("interface used with wrong action subtype");
+
+        auto priority = priAct->priority();
 
         switch(priority) {
         case PriorityAction::First:

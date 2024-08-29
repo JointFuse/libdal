@@ -29,7 +29,10 @@ class QSimpleManager::_impl
 {
 public:
     void responseSender(AbstractResponse::responseHandle_t resp) {
-        auto cli = (QAsynchInterface*)resp->requestor();
+        auto cli = dynamic_cast<QAsynchInterface*>(resp->requestor());
+
+        if (!cli)
+            throw std::runtime_error("invalid qbased requestor subtype");
 
         QMetaObject::invokeMethod(
             cli,
@@ -48,7 +51,11 @@ class QPromiseManager::_impl
 {
 public:
     void responseSender(AbstractResponse::responseHandle_t resp) {
-        auto promResp = (PromiseResponse*)resp.get();
+        auto promResp = dynamic_cast<PromiseResponse*>(resp.get());
+
+        if (!promResp)
+            throw std::runtime_error("invalid promise response subtype");
+
         auto prom = decltype(promResp->promise){ std::move(promResp->promise) };
         prom.set_value(std::move(resp));
     }

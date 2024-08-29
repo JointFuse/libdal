@@ -23,6 +23,7 @@ public:
     }
     catch(std::system_error& err) {
         std::cerr << err.what() << std::endl;
+        throw err;
     }
 
     void push_front(AbstractAction::actionHandle_t act)
@@ -32,6 +33,7 @@ public:
     }
     catch(std::system_error& err) {
         std::cerr << err.what() << std::endl;
+        throw err;
     }
 
     AbstractAction::actionHandle_t pop_back()
@@ -43,7 +45,7 @@ public:
     }
     catch(std::system_error& err) {
         std::cerr << err.what() << std::endl;
-        return {};
+        throw err;
     }
 
     AbstractAction::actionHandle_t pop_front()
@@ -55,7 +57,7 @@ public:
     }
     catch(std::system_error& err) {
         std::cerr << err.what() << std::endl;
-        return {};
+        throw err;
     }
 
     bool pop_back(AbstractAction::actionHandle_t& hndl)
@@ -71,7 +73,7 @@ public:
     }
     catch(std::system_error& err) {
         std::cerr << err.what() << std::endl;
-        return {};
+        throw err;
     }
 
     bool pop_front(AbstractAction::actionHandle_t& hndl)
@@ -87,7 +89,7 @@ public:
     }
     catch(std::system_error& err) {
         std::cerr << err.what() << std::endl;
-        return {};
+        throw err;
     }
 
     void clear()
@@ -97,6 +99,7 @@ public:
     }
     catch(std::system_error& err) {
         std::cerr << err.what() << std::endl;
+        throw err;
     }
 
     int queueSize() const
@@ -203,7 +206,7 @@ public:
     }
     catch(std::system_error& err) {
         std::cerr << err.what() << std::endl;
-        return {};
+        throw err;
     }
 
     AbstractAction::actionHandle_t pop_front()
@@ -227,7 +230,7 @@ public:
     }
     catch(std::system_error& err) {
         std::cerr << err.what() << std::endl;
-        return {};
+        throw err;
     }
 
     bool pop_back(AbstractAction::actionHandle_t& hndl)
@@ -236,8 +239,6 @@ public:
 
         if (m_queue.empty())
             return false;
-
-        hndl.reset();
 
         for (auto itr = m_queue.begin(); itr != m_queue.end(); ++itr)
         {
@@ -258,7 +259,7 @@ public:
     }
     catch(std::system_error& err) {
         std::cerr << err.what() << std::endl;
-        return {};
+        throw err;
     }
 
     bool pop_front(AbstractAction::actionHandle_t& hndl)
@@ -268,11 +269,9 @@ public:
         if (m_queue.empty())
             return false;
 
-        hndl.reset();
-
-        for (auto itr = m_queue.rbegin(); itr != m_queue.rend(); ++itr)
+        for (auto i = (int)m_queue.size() - 1; 0 <= i; --i)
         {
-            const auto readyAct = dynamic_cast<ReadyAction*>(itr->get());
+            const auto readyAct = dynamic_cast<ReadyAction*>(m_queue[i].get());
 
             if (!readyAct)
                 return false;
@@ -280,8 +279,8 @@ public:
             if (!readyAct->isReady())
                 continue;
 
-            hndl.swap(*itr);
-            m_queue.erase(itr.base());
+            hndl.swap(m_queue.at(i));
+            m_queue.erase(m_queue.begin() + i);
             break;
         }
 
@@ -289,7 +288,7 @@ public:
     }
     catch(std::system_error& err) {
         std::cerr << err.what() << std::endl;
-        return {};
+        throw err;
     }
 
 private:
