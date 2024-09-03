@@ -109,8 +109,8 @@ public:
 
     void lockInterface(AbstractAction::uid_t uid)
     {
+        std::lock(m_synchMutex, m_synch[uid]);
         const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
-        m_synch[uid].lock();
     }
 
     void unlockInterface(AbstractAction::uid_t uid)
@@ -134,8 +134,18 @@ public:
     void removeInterface(AbstractAction::uid_t uid)
     {
         const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
+
         if (hasInterface(uid))
+        {
+            if (!m_synch[uid].try_lock())
+            {
+                m_synchMutex.unlock();
+                std::lock(m_synchMutex, m_synch[uid]);
+            }
+
+            m_synch[uid].unlock();
             m_synch.erase(m_synch.find(uid));
+        }
     }
 
     bool hasInterface(AbstractAction::uid_t uid)

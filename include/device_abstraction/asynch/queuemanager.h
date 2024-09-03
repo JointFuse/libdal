@@ -43,7 +43,7 @@ public:
 
 protected:
     virtual void processAction(AbstractAction::actionHandle_t&);
-    virtual void sendClientResponse(AbstractResponse::responseHandle_t);
+    virtual void sendClientResponse(AbstractResponse::responseHandle_t);        // NOTE this method should internaly unlock requestor interface
 
 private:
     DAL_DECLARE_PIMPL

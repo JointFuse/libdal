@@ -117,7 +117,6 @@ public:
     }
 
     ~_impl() {
-        m_queue->lockInterface(m_base);
         m_queue->removeInterface(m_base);
     }
 

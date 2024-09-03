@@ -88,9 +88,14 @@ public:
                 throw e;
             }
 
-            if (act->requestor())
-                m_base->QueueManager::pimpl->m_queue->unlockInterface(
-                    act->requestor());
+            /*
+             * Ill formed logic - client interface must remain valid all way
+             * before response will be sent to it, so method responsible
+             * for unlock is that sending response, not exectly current method
+             */
+//            if (act->requestor())
+//                m_base->QueueManager::pimpl->m_queue->unlockInterface(
+//                    act->requestor());
         }
 
 #ifdef TIMINGTEST
@@ -126,6 +131,8 @@ public:
     {
         auto cli = act->requestor();
         cli->notifyOwner(std::move(act));
+        // here we must free locked interface
+        m_base->QueueManager::pimpl->m_queue->unlockInterface(cli);
     }
 
 private:
@@ -142,7 +149,12 @@ public:
             while (m_flag) {
                 if (!m_resp.empty() && m_mtx.try_lock())
                 {
+                    const auto cli = m_resp.front()->requestor();
                     m_base->responseSender(std::move(m_resp.front()));
+
+                    // here we unlocking requestor
+                    m_base->QueueManager::pimpl->m_queue->unlockInterface(cli);
+
                     m_resp.pop_front();
                     m_mtx.unlock();
                 }
