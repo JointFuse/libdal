@@ -40,6 +40,7 @@ xbin/
 3rdparty/
 lib*/
 
+*.DS_Store
 # MinGW generated files
 *.Debug
 *.Release

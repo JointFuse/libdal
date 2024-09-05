@@ -43,7 +43,7 @@ public:
 
 protected:
     virtual void processAction(AbstractAction::actionHandle_t&);
-    virtual void sendClientResponse(AbstractResponse::responseHandle_t);
+    virtual void sendClientResponse(AbstractResponse::responseHandle_t);        // NOTE this method should internaly unlock requestor interface
 
 private:
     DAL_DECLARE_PIMPL
@@ -61,7 +61,7 @@ public:
 
 protected:
     void sendClientResponse(AbstractResponse::responseHandle_t) final;
-    virtual void responseSender(AbstractResponse::responseHandle_t) = 0;
+    virtual std::function<void(AbstractResponse::responseHandle_t)> responseSender() = 0;
 
 private:
     DAL_DECLARE_PIMPL

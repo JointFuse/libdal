@@ -5,6 +5,8 @@
 #include <mutex>
 #include <iostream>
 #include <stdexcept>
+#include <shared_mutex>
+#include <condition_variable>
 
 using namespace dal;
 
@@ -102,51 +104,68 @@ public:
         throw err;
     }
 
-    int queueSize() const
-    {
+    int queueSize() const {
         return m_queue.size();
     }
 
-    void lockInterface(AbstractAction::uid_t uid)
-    {
-        const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
-        m_synch[uid].lock();
+    void lockInterface(AbstractAction::uid_t uid) = delete;
+//    {
+//        const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
+//        m_synch[uid].lock_shared();
+//    }
+
+    void unlockInterface(AbstractAction::uid_t uid) {
+        {
+            const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
+
+            if (m_synch[uid].first == 0)
+                throw std::runtime_error("attempt to unlock non-locked interface");
+
+            if (--m_synch[uid].first != 0)
+                return;
+        }
+
+        m_synch[uid].second.notify_all();
     }
 
-    void unlockInterface(AbstractAction::uid_t uid)
-    {
+    bool tryLockInterface(AbstractAction::uid_t uid) {
         const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
-        m_synch[uid].unlock();
+
+        if (m_synch.find(uid) != m_synch.end())
+        {
+            ++m_synch[uid].first;
+            return true;
+        }
+        else
+            return false;
     }
 
-    bool tryLockInterface(AbstractAction::uid_t uid)
-    {
+    void registerInterface(AbstractAction::uid_t uid) {
         const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
-        return m_synch.find(uid) != m_synch.end() && m_synch[uid].try_lock();
+        m_synch[uid].first = 0;
     }
 
-    void registerInterface(AbstractAction::uid_t uid)
-    {
-        const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
-        m_synch[uid];
-    }
+    void removeInterface(AbstractAction::uid_t uid) {
+        auto _ = std::unique_lock<decltype(m_synchMutex)>{ m_synchMutex };
 
-    void removeInterface(AbstractAction::uid_t uid)
-    {
-        const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
         if (hasInterface(uid))
+        {
+            if (m_synch[uid].first != 0)
+                m_synch[uid].second.wait
+                    (_, [&flag = m_synch[uid].first] () { return flag == 0; });
+
             m_synch.erase(m_synch.find(uid));
+        }
     }
 
-    bool hasInterface(AbstractAction::uid_t uid)
-    {
+    bool hasInterface(AbstractAction::uid_t uid) {
         const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
         return m_synch.find(uid) != m_synch.end();
     }
 
 private:
     container_t m_queue;
-    std::map<AbstractAction::uid_t, std::mutex> m_synch;
+    std::map<AbstractAction::uid_t, std::pair<int, std::condition_variable_any>> m_synch;
     std::recursive_mutex m_synchMutex;
     std::mutex m_queueSynch;
 
@@ -339,10 +358,10 @@ int SimpleQueue::queueSize() const
     return pimpl->queueSize();
 }
 
-void SimpleQueue::lockInterface(AbstractAction::uid_t uid)
-{
-    pimpl->lockInterface(uid);
-}
+//void SimpleQueue::lockInterface(AbstractAction::uid_t uid)
+//{
+//    pimpl->lockInterface(uid);
+//}
 
 void SimpleQueue::unlockInterface(AbstractAction::uid_t uid)
 {

@@ -55,6 +55,9 @@ public:
 
     void processQueue()
     try {
+        if (!m_processLock.try_lock())
+            return;
+
         m_base->QueueManager::pimpl->m_isWorking = true;
 
 #ifdef TIMINGTEST
@@ -88,9 +91,14 @@ public:
                 throw e;
             }
 
-            if (act->requestor())
-                m_base->QueueManager::pimpl->m_queue->unlockInterface(
-                    act->requestor());
+            /*
+             * Ill formed logic - client interface must remain valid all way
+             * before response will be sent to it, so method responsible
+             * for unlock is that sending response, not exectly current method
+             */
+//            if (act->requestor())
+//                m_base->QueueManager::pimpl->m_queue->unlockInterface(
+//                    act->requestor());
         }
 
 #ifdef TIMINGTEST
@@ -103,15 +111,18 @@ public:
             qInfo() << "Avarage manager processing: " << avarage << "mcS\n";
 #endif
 
+        m_processLock.unlock();
         m_base->QueueManager::pimpl->m_isWorking = false;
     }
     catch(driver_error& err) {
         std::cerr << err.what() << std::endl;
+        m_processLock.unlock();
         processQueue();
     }
     catch(std::exception& e){
         m_base->QueueManager::pimpl->m_isWorking = false;
         std::cerr << e.what() << std::endl;
+        m_processLock.unlock();
         throw e;
     }
 
@@ -126,10 +137,13 @@ public:
     {
         auto cli = act->requestor();
         cli->notifyOwner(std::move(act));
+        // here we must free locked interface
+        m_base->QueueManager::pimpl->m_queue->unlockInterface(cli);
     }
 
 private:
     SimpleManager* m_base;
+    std::mutex m_processLock;
 
 };
 
@@ -138,11 +152,38 @@ class AsynchRespondManager::_impl
 public:
     _impl(AsynchRespondManager* base)
         : m_base{ base } {
-        m_task = std::async(std::launch::async, [this]() {
+
+    }
+
+    ~_impl() {
+        m_flag = false;
+        m_task.get();
+
+        for (auto& resp : m_resp)
+            m_base->QueueManager::pimpl->m_queue->unlockInterface
+                (resp->requestor());
+    }
+
+    void sendClientResponse(AbstractResponse::responseHandle_t res) {
+        const std::lock_guard<std::mutex> _{ m_mtx };
+        m_resp.push_back(std::move(res));
+
+        if (m_taskStarted)
+            return;
+        else
+            m_taskStarted = true;
+
+        m_task = std::async(std::launch::async,
+                            [this, respSend = m_base->responseSender()]() {
             while (m_flag) {
                 if (!m_resp.empty() && m_mtx.try_lock())
                 {
-                    m_base->responseSender(std::move(m_resp.front()));
+                    const auto cli = m_resp.front()->requestor();
+                    respSend(std::move(m_resp.front()));
+
+                    // here we unlocking requestor
+                    m_base->QueueManager::pimpl->m_queue->unlockInterface(cli);
+
                     m_resp.pop_front();
                     m_mtx.unlock();
                 }
@@ -152,18 +193,10 @@ public:
         });
     }
 
-    ~_impl() {
-        m_flag = false;
-    }
-
-    void sendClientResponse(AbstractResponse::responseHandle_t res) {
-        const std::lock_guard<std::mutex> _{ m_mtx };
-        m_resp.push_back(std::move(res));
-    }
-
 private:
     std::list<AbstractResponse::responseHandle_t> m_resp;
     std::future<void> m_task;
+    bool m_taskStarted{ false };
     std::atomic<bool> m_flag{ true };
     std::mutex m_mtx;
     AsynchRespondManager* m_base;
