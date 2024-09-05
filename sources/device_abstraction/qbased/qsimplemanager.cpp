@@ -28,36 +28,50 @@ private:
 class QSimpleManager::_impl
 {
 public:
-    void responseSender(AbstractResponse::responseHandle_t resp) {
-        auto cli = dynamic_cast<QAsynchInterface*>(resp->requestor());
+    std::function<void(AbstractResponse::responseHandle_t)> responseSender() {
+        return [](auto resp) {
+            auto cli = dynamic_cast<QAsynchInterface*>(resp->requestor());
 
-        if (!cli)
-            throw std::runtime_error("invalid qbased requestor subtype");
+            if (!cli)
+                /*
+                 * thorwing deprecated - requestor may entered destructor and
+                 * virtual table isn't available for him
+                 */
+//                throw std::runtime_error("invalid qbased requestor subtype");
+                return;
 
-        QMetaObject::invokeMethod(
-            cli,
-            "responseReciever",
-            Qt::QueuedConnection,
-            // WARNING QT expects an argument of a type that
-            // supports copying, so it has to get rid of the
-            // smart pointer wrapper, which potentially leads
-            // to a memory leak
-            Q_ARG(dal::AbstractResponse*, resp.release())
-            );
+            QMetaObject::invokeMethod(
+                cli,
+                "responseReciever",
+                Qt::QueuedConnection,
+                // WARNING QT expects an argument of a type that
+                // supports copying, so it has to get rid of the
+                // smart pointer wrapper, which potentially leads
+                // to a memory leak
+                Q_ARG(dal::AbstractResponse*, resp.release())
+                );
+        };
     }
 };
 
 class QPromiseManager::_impl
 {
 public:
-    void responseSender(AbstractResponse::responseHandle_t resp) {
-        auto promResp = dynamic_cast<PromiseResponse*>(resp.get());
+    std::function<void(AbstractResponse::responseHandle_t)> responseSender() {
+        return [](auto resp) {
+            auto promResp = dynamic_cast<PromiseResponse*>(resp.get());
 
-        if (!promResp)
-            throw std::runtime_error("invalid promise response subtype");
+            if (!promResp)
+                /*
+                 * thorwing deprecated - requestor may entered destructor and
+                 * virtual table isn't available for him
+                 */
+//                throw std::runtime_error("invalid promise response subtype");
+                return;
 
-        auto prom = decltype(promResp->promise){ std::move(promResp->promise) };
-        prom.set_value(std::move(resp));
+            auto prom = decltype(promResp->promise){ std::move(promResp->promise) };
+            prom.set_value(std::move(resp));
+        };
     }
 };
 
@@ -82,9 +96,9 @@ QSimpleManager::QSimpleManager(std::unique_ptr<DeviceDriver> executor,
 
 }
 
-void QSimpleManager::responseSender(AbstractResponse::responseHandle_t resp)
+std::function<void(AbstractResponse::responseHandle_t)> QSimpleManager::responseSender()
 {
-    pimpl->responseSender(std::move(resp));
+    return pimpl->responseSender();
 }
 
 QPromiseManager::QPromiseManager(std::unique_ptr<DeviceDriver> executor,
@@ -95,9 +109,9 @@ QPromiseManager::QPromiseManager(std::unique_ptr<DeviceDriver> executor,
 
 }
 
-void QPromiseManager::responseSender(AbstractResponse::responseHandle_t resp)
+std::function<void(AbstractResponse::responseHandle_t)> QPromiseManager::responseSender()
 {
-    pimpl->responseSender(std::move(resp));
+    return pimpl->responseSender();
 }
 
 DAL_PIMPL_DEFAULT_DESTRUCTOR(QBaseManager)

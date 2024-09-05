@@ -39,7 +39,7 @@ public:
     ~QSimpleManager();
 
 protected:
-    void responseSender(AbstractResponse::responseHandle_t);
+    std::function<void(AbstractResponse::responseHandle_t)> responseSender();
 
 private:
     DAL_DECLARE_PIMPL
@@ -58,7 +58,7 @@ public:
     ~QPromiseManager();
 
 protected:
-    void responseSender(AbstractResponse::responseHandle_t);
+    std::function<void(AbstractResponse::responseHandle_t)> responseSender();
 
 private:
     DAL_DECLARE_PIMPL
