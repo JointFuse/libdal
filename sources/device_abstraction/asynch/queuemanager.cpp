@@ -157,7 +157,9 @@ public:
 
     ~_impl() {
         m_flag = false;
-        m_task.get();
+
+        if (m_task.valid())
+            m_task.get();
 
         for (auto& resp : m_resp)
             m_base->QueueManager::pimpl->m_queue->unlockInterface
