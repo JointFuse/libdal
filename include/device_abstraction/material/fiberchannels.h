@@ -107,16 +107,34 @@ std::shared_ptr<DecoChannel<T>> MultiChannel<Key, T>::getChannel(Key k)
 template<typename Key, typename T>
 std::map<Key, T> MultiChannel<Key, T>::any(void* reqId)
 {
+    struct ReqEraser {
+        ReqEraser(decltype(m_impl->ready)& where, void* what)
+            : m_where{ where }, m_what{ what } {}
+
+        ~ReqEraser() {
+            m_where.erase(m_what);
+        }
+
+    private:
+        decltype(m_impl->ready)& m_where;
+        void* m_what;
+
+    };
+
     static constexpr auto TIMEOUT = std::chrono::milliseconds(3000);
 
     auto lck = std::unique_lock<std::recursive_mutex>(*m_impl->accMtx);
+    const auto _ = ReqEraser{ m_impl->ready, reqId };
 
     if (m_impl->ready[reqId].empty())
     {
         const auto res = m_impl->cv.wait_for(lck, TIMEOUT);
 
         if (res == std::cv_status::timeout)
+        {
+            m_impl->ready.erase(reqId);
             return {};
+        }
     }
 
     auto res = std::map<Key, T>{};
