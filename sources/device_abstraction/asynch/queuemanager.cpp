@@ -129,7 +129,7 @@ public:
     void processAction(AbstractAction::actionHandle_t& act) {
         auto res = m_base->QueueManager::pimpl->m_executor->executeAction(act);
 
-        if (act->requestor())
+        if (res && act->requestor())
             m_base->sendClientResponse(std::move(res));
     }
 
