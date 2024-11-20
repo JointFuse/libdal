@@ -62,13 +62,21 @@ protected:
 /**
  * @brief The SimpleSynchInterface class
  */
-class SimpleSynchInterface : public DeviceInterface
+class SimpleSynchInterface : public DeviceInterface, public LogicDevice
 {
 public:
     SimpleSynchInterface    (std::unique_ptr<DeviceDriver>);
     ~SimpleSynchInterface   ();
 
     void processAction(AbstractAction::actionHandle_t) override;
+
+    std::unique_ptr<AbstractResponse> getResponse();
+
+private:
+    using LogicDevice::setInterface;
+    using LogicDevice::interface;
+
+    void responseGetter(std::unique_ptr<AbstractResponse>) override;
 
 private:
     DAL_DECLARE_PIMPL

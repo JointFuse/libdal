@@ -8,6 +8,8 @@ QMAKE_APPLE_DEVICE_ARCHS = arm64
 DESTDIR = $$PWD/../lib
 TEMPLATE = lib
 
+CONFIG(release, debug|release): CONFIG += optimize_full
+
 CONFIG(release, debug|release): TARGET = dal
 CONFIG(debug, debug|release): TARGET = dal_debug
 
@@ -45,4 +47,5 @@ HEADERS += \
     ../include/device_abstraction/qbased/qsimplemanager.h \
     ../include/device_abstraction/dalcore.h \
     ../include/device_abstraction/material/channel.h \
-    ../include/device_abstraction/material/promise.h
+    ../include/device_abstraction/material/promise.h \
+    ../include/device_abstraction/material/fiberchannels.h

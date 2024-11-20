@@ -91,7 +91,16 @@ public:
         std::cerr << err.what() << std::endl;
     }
 
+    std::unique_ptr<AbstractResponse> getResponse() {
+        return std::move(m_resp);
+    }
+
+    void responseGetter(std::unique_ptr<AbstractResponse> resp) {
+        m_resp.swap(resp);
+    }
+
 private:
+    std::unique_ptr<AbstractResponse> m_resp;
     SimpleSynchInterface* m_base;
     std::unique_ptr<DeviceDriver> m_executor;
 
@@ -179,6 +188,16 @@ SimpleSynchInterface::SimpleSynchInterface(std::unique_ptr<DeviceDriver> exc)
 void SimpleSynchInterface::processAction(AbstractAction::actionHandle_t act)
 {
     pimpl->processAction(std::move(act));
+}
+
+std::unique_ptr<AbstractResponse> SimpleSynchInterface::getResponse()
+{
+    return pimpl->getResponse();
+}
+
+void SimpleSynchInterface::responseGetter(std::unique_ptr<AbstractResponse> resp)
+{
+    pimpl->responseGetter(std::move(resp));
 }
 
 QueuedAsynchInterface::QueuedAsynchInterface(SimpleQueue::handle_t que,
