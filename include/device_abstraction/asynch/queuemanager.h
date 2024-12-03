@@ -25,6 +25,8 @@ public:
 
     bool isWorking() const;
 
+    std::unique_ptr<DeviceDriver> takeExecutor();
+
 protected:
     DAL_DECLARE_PIMPL
 

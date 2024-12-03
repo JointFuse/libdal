@@ -21,6 +21,8 @@ using namespace dal;
 
 class QueueManager::_impl
 {
+    friend QueueManager;
+
 public:
     _impl(std::unique_ptr<DeviceDriver> executor,
           SimpleQueue::handle_t queue)
@@ -38,10 +40,20 @@ public:
         return m_isWorking;
     }
 
+    std::unique_ptr<AbstractResponse> exec(
+        const std::unique_ptr<AbstractAction>& act) {
+        if (m_executor)
+            return m_executor->executeAction(act);
+        else
+            return {};
+    }
+
 public:
-    std::unique_ptr<DeviceDriver> m_executor;
     SimpleQueue::handle_t m_queue;
     std::atomic<bool> m_isWorking;
+
+private:
+    std::unique_ptr<DeviceDriver> m_executor;
 
 };
 
@@ -90,15 +102,6 @@ public:
                 std::cerr << e.what() << std::endl;
                 throw e;
             }
-
-            /*
-             * Ill formed logic - client interface must remain valid all way
-             * before response will be sent to it, so method responsible
-             * for unlock is that sending response, not exectly current method
-             */
-//            if (act->requestor())
-//                m_base->QueueManager::pimpl->m_queue->unlockInterface(
-//                    act->requestor());
         }
 
 #ifdef TIMINGTEST
@@ -127,7 +130,7 @@ public:
     }
 
     void processAction(AbstractAction::actionHandle_t& act) {
-        auto res = m_base->QueueManager::pimpl->m_executor->executeAction(act);
+        auto res = m_base->QueueManager::pimpl->exec(act);
 
         if (res && act->requestor())
             m_base->sendClientResponse(std::move(res));
@@ -215,6 +218,11 @@ QueueManager::QueueManager(std::unique_ptr<DeviceDriver> executor,
 bool QueueManager::isWorking() const
 {
     return pimpl->isWorking();
+}
+
+std::unique_ptr<DeviceDriver> QueueManager::takeExecutor()
+{
+    return std::move(pimpl->m_executor);
 }
 
 SimpleManager::SimpleManager(std::unique_ptr<DeviceDriver> executor,
