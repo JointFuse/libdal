@@ -29,7 +29,7 @@ public:
     }
 
 public:
-    LogicDevice* m_owner;
+    LogicDevice* m_owner{ nullptr };
 
 private:
     DeviceInterface* m_base;
@@ -75,6 +75,7 @@ public:
             throw std::runtime_error{"synchronous interface initialized "
                                      "with NULL driver handle"};
 
+        ((DeviceInterface*)base)->pimpl->m_owner = base;
         m_executor->initializeDevice();
     }
 

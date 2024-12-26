@@ -15,12 +15,14 @@
 namespace dal { ////////////////////////////////////////////////////////////////
 
 class LogicDevice;
+class SimpleSynchInterface;
 /**
  * @brief The DeviceInterface class
  */
 class DeviceInterface
 {
     friend LogicDevice;
+    friend SimpleSynchInterface;
 
 public:
     using interfaceHandle_t = std::shared_ptr<DeviceInterface>;
