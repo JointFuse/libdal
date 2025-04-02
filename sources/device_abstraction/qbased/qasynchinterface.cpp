@@ -92,10 +92,5 @@ QAsynchInterface::QAsynchInterface(
 
 }
 
-QAsynchInterface::~QAsynchInterface()
-{
-    pimpl.reset();
-}
-
 DAL_PIMPL_DEFAULT_DESTRUCTOR(QBaseInterface)
-//DAL_PIMPL_DEFAULT_DESTRUCTOR(QAsynchInterface)
+DAL_PIMPL_DEFAULT_DESTRUCTOR(QAsynchInterface)
