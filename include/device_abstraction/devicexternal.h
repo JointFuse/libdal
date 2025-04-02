@@ -31,7 +31,7 @@ public:
     DeviceInterface();
     virtual ~DeviceInterface();
 
-    void notifyOwner(AbstractResponse::responseHandle_t);
+    virtual void notifyOwner(AbstractResponse::responseHandle_t);
     void execute    (AbstractAction::actionHandle_t);
 
 protected:
@@ -94,11 +94,16 @@ public:
                           QueueManager::managerHandle_t);
     ~QueuedAsynchInterface();
 
+    void notifyOwner(AbstractResponse::responseHandle_t resp) override;
+
     // NOTE this class using ONLY with priority actions
     void processAction(AbstractAction::actionHandle_t) override;
 
 protected:
     virtual void startAsynchQueueProcessing(std::shared_ptr<QueueManager>) = 0;
+
+    void removeInterfaceFromQueueBeforeDestruction();
+    void stopFurtherResponseProcessing();
 
 private:
     DAL_DECLARE_PIMPL

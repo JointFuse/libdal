@@ -1,5 +1,6 @@
 #include "actionqueue.h"
 
+#include <atomic>
 #include <deque>
 #include <map>
 #include <mutex>
@@ -9,6 +10,51 @@
 #include <condition_variable>
 
 using namespace dal;
+
+class InterfaceAcquisitionSync
+{
+public:
+    bool acquire() {
+        if (!isAlive())
+            return false;
+
+        ++m_acquireCounter;
+        return true;
+    }
+
+    void release() {
+        if (m_acquireCounter == 0)
+            throw std::runtime_error("attempt to unlock non-locked interface");
+
+        if (--m_acquireCounter != 0)
+            return;
+
+        m_releaseNotifier.notify_all();
+    }
+
+    template<typename Mutex>
+    void waitForRelease(std::unique_lock<Mutex>& mtx) {
+        if (m_acquireCounter == 0)
+            return;
+
+        m_releaseNotifier.wait
+            (mtx, [&flag = m_acquireCounter] () { return flag == 0; });
+    }
+
+    bool isAlive() const {
+        return m_aliveFlag.load(std::memory_order_acquire);
+    }
+
+    void kill() {
+        m_aliveFlag.store(false, std::memory_order_release);
+    }
+
+private:
+    int m_acquireCounter{ 0 };
+    std::condition_variable_any m_releaseNotifier;
+    std::atomic_bool m_aliveFlag{ true };
+
+};
 
 class SimpleQueue::_impl
 {
@@ -114,59 +160,50 @@ public:
 //        m_synch[uid].lock_shared();
 //    }
 
-    void unlockInterface(AbstractAction::uid_t uid) {
-        {
-            const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
-
-            if (m_synch[uid].first == 0)
-                throw std::runtime_error("attempt to unlock non-locked interface");
-
-            if (--m_synch[uid].first != 0)
-                return;
-        }
-
-        m_synch[uid].second.notify_all();
+    bool checkAliveAndUnlockInterface(AbstractAction::uid_t uid) {
+        const auto _ = std::shared_lock<decltype(m_synchMutex)>{ m_synchMutex };
+        const auto isInterfaceAlive = m_synch.at(uid).isAlive();
+        m_synch.at(uid).release();
+        return isInterfaceAlive;
     }
 
     bool tryLockInterface(AbstractAction::uid_t uid) {
-        const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
+        const auto _ = std::shared_lock<decltype(m_synchMutex)>{ m_synchMutex };
 
-        if (m_synch.find(uid) != m_synch.end())
-        {
-            ++m_synch[uid].first;
+        if (m_synch.find(uid) != m_synch.end() && m_synch[uid].acquire())
             return true;
-        }
         else
             return false;
     }
 
     void registerInterface(AbstractAction::uid_t uid) {
         const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
-        m_synch[uid].first = 0;
+        m_synch[uid];
     }
 
     void removeInterface(AbstractAction::uid_t uid) {
+        if (!hasInterface(uid))
+            return;
+
         auto _ = std::unique_lock<decltype(m_synchMutex)>{ m_synchMutex };
-
-        if (hasInterface(uid))
-        {
-            if (m_synch[uid].first != 0)
-                m_synch[uid].second.wait
-                    (_, [&flag = m_synch[uid].first] () { return flag == 0; });
-
-            m_synch.erase(m_synch.find(uid));
-        }
+        m_synch[uid].waitForRelease(_);
+        m_synch.erase(m_synch.find(uid));
     }
 
     bool hasInterface(AbstractAction::uid_t uid) {
-        const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
+        const auto _ = std::shared_lock<decltype(m_synchMutex)>{ m_synchMutex };
         return m_synch.find(uid) != m_synch.end();
+    }
+
+    void killInterface(AbstractAction::uid_t uid) {
+        auto _ = std::shared_lock<decltype(m_synchMutex)>{ m_synchMutex };
+        m_synch.at(uid).kill();
     }
 
 private:
     container_t m_queue;
-    std::map<AbstractAction::uid_t, std::pair<int, std::condition_variable_any>> m_synch;
-    std::recursive_mutex m_synchMutex;
+    std::map<AbstractAction::uid_t, InterfaceAcquisitionSync> m_synch;
+    std::shared_mutex m_synchMutex;
     std::mutex m_queueSynch;
 
 };
@@ -363,9 +400,9 @@ int SimpleQueue::queueSize() const
 //    pimpl->lockInterface(uid);
 //}
 
-void SimpleQueue::unlockInterface(AbstractAction::uid_t uid)
+bool SimpleQueue::checkAliveAndUnlockInterface(AbstractAction::uid_t uid)
 {
-    pimpl->unlockInterface(uid);
+    return pimpl->checkAliveAndUnlockInterface(uid);
 }
 
 bool SimpleQueue::tryLockInterface(AbstractAction::uid_t uid)
@@ -386,6 +423,11 @@ void SimpleQueue::removeInterface(AbstractAction::uid_t uid)
 bool SimpleQueue::hasInterface(AbstractAction::uid_t uid)
 {
     return pimpl->hasInterface(uid);
+}
+
+void SimpleQueue::killInterface(AbstractAction::uid_t uid)
+{
+    pimpl->killInterface(uid);
 }
 
 DAL_PIMPL_DEFAULT_CONSTRUCTOR(SimpleQueue)

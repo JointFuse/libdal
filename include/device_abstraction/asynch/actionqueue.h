@@ -49,12 +49,13 @@ public:
     virtual void clear      ()                                  = 0;
     virtual int queueSize   () const                            = 0;
 
+    virtual bool checkAliveAndUnlockInterface(AbstractAction::uid_t) = 0;
     virtual void lockInterface      (AbstractAction::uid_t)     = delete;
-    virtual void unlockInterface    (AbstractAction::uid_t)     = 0;
     virtual bool tryLockInterface   (AbstractAction::uid_t)     = 0;
     virtual void registerInterface  (AbstractAction::uid_t)     = 0;
     virtual void removeInterface    (AbstractAction::uid_t)     = 0;
     virtual bool hasInterface       (AbstractAction::uid_t)     = 0;
+    virtual void killInterface      (AbstractAction::uid_t)     = 0;
 
 };
 /**
@@ -79,11 +80,12 @@ public:
     int queueSize   ()                                  const override;
 
 //    void lockInterface      (AbstractAction::uid_t)     override;
-    void unlockInterface    (AbstractAction::uid_t)     override;
+    bool checkAliveAndUnlockInterface(AbstractAction::uid_t) override;
     bool tryLockInterface   (AbstractAction::uid_t)     override;
     void registerInterface  (AbstractAction::uid_t)     override;
     void removeInterface    (AbstractAction::uid_t)     override;
     bool hasInterface       (AbstractAction::uid_t)     override;
+    void killInterface      (AbstractAction::uid_t)     override; // usually used to irrevocably stop response processing for interface
 
 protected:
     DAL_DECLARE_PIMPL

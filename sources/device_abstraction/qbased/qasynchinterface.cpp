@@ -1,7 +1,10 @@
 #include "qasynchinterface.h"
 
+#include <future>
+
 #include <QMetaObject>
 #include <QDebug>
+#include <QCoreApplication>
 
 #include "qsimplemanager.h"
 
@@ -28,6 +31,20 @@ class QAsynchInterface::_impl
 public:
     _impl(QAsynchInterface* base) : m_base{ base } {
 
+    }
+
+    ~_impl() {
+        m_base->stopFurtherResponseProcessing();
+
+        auto destructionPreparation = std::async(
+            std::launch::async,
+            [&inf = *m_base]() {
+                inf.removeInterfaceFromQueueBeforeDestruction();
+            });
+
+        while(destructionPreparation.wait_for(std::chrono::seconds(0)) !=
+              std::future_status::ready)
+            qApp->processEvents();
     }
 
     void responseReciever(AbstractResponse* resp)
@@ -75,5 +92,10 @@ QAsynchInterface::QAsynchInterface(
 
 }
 
+QAsynchInterface::~QAsynchInterface()
+{
+    pimpl.reset();
+}
+
 DAL_PIMPL_DEFAULT_DESTRUCTOR(QBaseInterface)
-DAL_PIMPL_DEFAULT_DESTRUCTOR(QAsynchInterface)
+//DAL_PIMPL_DEFAULT_DESTRUCTOR(QAsynchInterface)

@@ -26,9 +26,9 @@ class QueueManager::_impl
 public:
     _impl(std::unique_ptr<DeviceDriver> executor,
           SimpleQueue::handle_t queue)
-        : m_executor{ std::move(executor) }
-        , m_queue{ queue }
-        , m_isWorking{ false } {
+        : m_queue{ queue }
+        , m_isWorking{ false }
+        , m_executor{ std::move(executor) } {
         m_executor->initializeDevice();
     }
 
@@ -96,7 +96,7 @@ public:
             }
             catch(std::exception& e) {
                 if (act->requestor())
-                    m_base->QueueManager::pimpl->m_queue->unlockInterface(
+                    m_base->QueueManager::pimpl->m_queue->checkAliveAndUnlockInterface(
                         act->requestor());
 
                 std::cerr << e.what() << std::endl;
@@ -140,8 +140,6 @@ public:
     {
         auto cli = act->requestor();
         cli->notifyOwner(std::move(act));
-        // here we must free locked interface
-        m_base->QueueManager::pimpl->m_queue->unlockInterface(cli);
     }
 
 private:
@@ -165,7 +163,7 @@ public:
             m_task.get();
 
         for (auto& resp : m_resp)
-            m_base->QueueManager::pimpl->m_queue->unlockInterface
+            m_base->QueueManager::pimpl->m_queue->checkAliveAndUnlockInterface
                 (resp->requestor());
     }
 
@@ -183,12 +181,7 @@ public:
             while (m_flag) {
                 if (!m_resp.empty() && m_mtx.try_lock())
                 {
-                    const auto cli = m_resp.front()->requestor();
                     respSend(std::move(m_resp.front()));
-
-                    // here we unlocking requestor
-                    m_base->QueueManager::pimpl->m_queue->unlockInterface(cli);
-
                     m_resp.pop_front();
                     m_mtx.unlock();
                 }

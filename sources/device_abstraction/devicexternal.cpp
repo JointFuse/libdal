@@ -127,7 +127,7 @@ public:
     }
 
     ~_impl() {
-        m_queue->removeInterface(m_base);
+        removeInterfaceFromQueueBeforeDestruction();
     }
 
     void processAction(AbstractAction::actionHandle_t act)
@@ -151,6 +151,22 @@ public:
 
         if (!m_manager->isWorking())
             m_base->startAsynchQueueProcessing(m_manager);
+    }
+
+    void removeInterfaceFromQueueBeforeDestruction() {
+        m_queue->removeInterface(m_base);
+    }
+
+    void stopFurtherResponseProcessing() {
+        m_queue->killInterface(m_base);
+    }
+
+    void notifyOwner(AbstractResponse::responseHandle_t resp)
+    {
+        if (!m_queue->checkAliveAndUnlockInterface(m_base))
+            return;
+
+        m_base->DeviceInterface::notifyOwner(std::move(resp));
     }
 
 private:
@@ -208,9 +224,24 @@ QueuedAsynchInterface::QueuedAsynchInterface(SimpleQueue::handle_t que,
 
 }
 
+void QueuedAsynchInterface::notifyOwner(AbstractResponse::responseHandle_t resp)
+{
+    pimpl->notifyOwner(std::move(resp));
+}
+
 void QueuedAsynchInterface::processAction(AbstractAction::actionHandle_t act)
 {
     pimpl->processAction(std::move(act));
+}
+
+void QueuedAsynchInterface::removeInterfaceFromQueueBeforeDestruction()
+{
+    pimpl->removeInterfaceFromQueueBeforeDestruction();
+}
+
+void QueuedAsynchInterface::stopFurtherResponseProcessing()
+{
+    pimpl->stopFurtherResponseProcessing();
 }
 
 DAL_PIMPL_THIS_CONSTRUCTOR(LogicDevice)
