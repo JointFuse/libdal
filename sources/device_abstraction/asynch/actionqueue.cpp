@@ -50,7 +50,7 @@ public:
     }
 
 private:
-    int m_acquireCounter{ 0 };
+    std::atomic_int m_acquireCounter{ 0 };
     std::condition_variable_any m_releaseNotifier;
     std::atomic_bool m_aliveFlag{ true };
 

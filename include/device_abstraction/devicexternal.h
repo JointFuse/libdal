@@ -108,6 +108,8 @@ protected:
     void removeInterfaceFromQueueBeforeDestruction();
     void stopFurtherResponseProcessing();
 
+    QueueInterface& queue();
+
 private:
     DAL_DECLARE_PIMPL
 

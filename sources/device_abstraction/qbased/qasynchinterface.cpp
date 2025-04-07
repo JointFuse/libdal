@@ -27,7 +27,7 @@ public:
 };
 
 namespace AsynchInterface{
-thread_local std::atomic<QAsynchInterface*> Destructable{ nullptr };
+thread_local std::list<QAsynchInterface*> Destructable;
 }
 
 class QAsynchInterface::_impl
@@ -38,7 +38,7 @@ public:
     }
 
     ~_impl() {
-        m_destructableInterface.store(m_base, std::memory_order_release);
+        m_destructableInterface.push_front(m_base);
         m_base->stopFurtherResponseProcessing();
 
         auto destructionPreparation = std::async(
@@ -51,25 +51,31 @@ public:
               std::future_status::ready)
             qApp->processEvents();
 
-        m_destructableInterface.store(nullptr, std::memory_order_release);
+        m_destructableInterface.pop_front();
     }
 
-    void responseReciever(AbstractResponse* resp)
-    {
-        const auto destrInf = m_destructableInterface.
-                              load(std::memory_order_acquire);
+    void responseReciever(AbstractResponse* resp) {
+        if (!m_base->queue().checkAliveAndUnlockInterface(resp->requestor())) {
+            delete resp;
+            return;
+        }
 
-        if (destrInf != nullptr && destrInf != m_base) {
-            QMetaObject::invokeMethod(
-                m_base,
-                "responseReciever",
-                Qt::QueuedConnection,
-                // WARNING QT expects an argument of a type that
-                // supports copying, so it has to get rid of the
-                // smart pointer wrapper, which potentially leads
-                // to a memory leak
-                Q_ARG(dal::AbstractResponse*, resp)
-                );
+        if (0 < m_destructableInterface.size() &&
+            m_destructableInterface.back() != m_base) {
+
+            if (m_base->queue().tryLockInterface(resp->requestor())) {
+                QMetaObject::invokeMethod(
+                    m_base,
+                    "responseReciever",
+                    Qt::QueuedConnection,
+                    // WARNING QT expects an argument of a type that
+                    // supports copying, so it has to get rid of the
+                    // smart pointer wrapper, which potentially leads
+                    // to a memory leak
+                    Q_ARG(dal::AbstractResponse*, resp)
+                    );
+            }
+
             return;
         }
 
@@ -86,7 +92,7 @@ public:
 private:
     QAsynchInterface* m_base;
 
-    inline static std::atomic<QAsynchInterface*>&
+    inline static std::list<QAsynchInterface*>&
         m_destructableInterface{ AsynchInterface::Destructable };
 
 };

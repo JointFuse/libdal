@@ -161,11 +161,12 @@ public:
         m_queue->killInterface(m_base);
     }
 
+    QueueInterface& queue() {
+        return *m_queue;
+    }
+
     void notifyOwner(AbstractResponse::responseHandle_t resp)
     {
-        if (!m_queue->checkAliveAndUnlockInterface(m_base))
-            return;
-
         m_base->DeviceInterface::notifyOwner(std::move(resp));
     }
 
@@ -242,6 +243,11 @@ void QueuedAsynchInterface::removeInterfaceFromQueueBeforeDestruction()
 void QueuedAsynchInterface::stopFurtherResponseProcessing()
 {
     pimpl->stopFurtherResponseProcessing();
+}
+
+QueueInterface& QueuedAsynchInterface::queue()
+{
+    return pimpl->queue();
 }
 
 void InterfaceCallbackSynchronizationPrimitive::acquire(AbstractAction::uid_t uid)
