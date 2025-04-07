@@ -65,6 +65,8 @@ public:
             if (act && act->requestor() != nullptr &&
                  !m_base->queue().tryLockInterface(act->requestor()))
                 continue;
+            else
+                break;
         }
 
         if (!act)
