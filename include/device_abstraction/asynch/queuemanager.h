@@ -28,6 +28,16 @@ public:
     std::unique_ptr<DeviceDriver> takeExecutor();
 
 protected:
+    /**
+     * @brief takeActionFromQueue
+     * @arg handle to store front action
+     * @return is queue has more events
+     */
+    virtual bool takeActionFromQueue(AbstractAction::actionHandle_t&);
+    std::unique_ptr<AbstractResponse> exec(const std::unique_ptr<AbstractAction>&);
+    QueueInterface& queue();
+
+protected:
     DAL_DECLARE_PIMPL
 
 };

@@ -48,6 +48,25 @@ public:
             return {};
     }
 
+    bool takeActionFromQueue(AbstractAction::actionHandle_t& act) {
+        act.reset();
+
+        while (m_queue->pop_front(act)) {
+            if (act && act->requestor() != nullptr &&
+                !m_queue->isAlive(act->requestor()))
+                continue;
+        }
+
+        if (act)
+            return true;
+        else
+            return false;
+    }
+
+    QueueInterface& queue() {
+        return *m_queue;
+    }
+
 public:
     SimpleQueue::handle_t m_queue;
     std::atomic<bool> m_isWorking;
@@ -77,31 +96,14 @@ public:
 #endif
         auto act = AbstractAction::actionHandle_t{ nullptr };
 
-        while (m_base->QueueManager::pimpl->m_queue->pop_front(act))
-        {
-            if (!act ||
-                (act->requestor() != nullptr &&
-                 !m_base->QueueManager::pimpl->m_queue->tryLockInterface(
-                     act->requestor())))
-                continue;
-
-            try {
+        while (m_base->takeActionFromQueue(act)) {
 #ifdef TIMINGTEST
-                const auto start = std::chrono::high_resolution_clock::now();
+            const auto start = std::chrono::high_resolution_clock::now();
 #endif
-                m_base->processAction(act);
+            m_base->processAction(act);
 #ifdef TIMINGTEST
-                durations.push_back((std::chrono::high_resolution_clock::now() - start).count());
+            durations.push_back((std::chrono::high_resolution_clock::now() - start).count());
 #endif
-            }
-            catch(std::exception& e) {
-                if (act->requestor())
-                    m_base->QueueManager::pimpl->m_queue->checkAliveAndUnlockInterface(
-                        act->requestor());
-
-                std::cerr << e.what() << std::endl;
-                throw e;
-            }
         }
 
 #ifdef TIMINGTEST
@@ -163,8 +165,7 @@ public:
             m_task.get();
 
         for (auto& resp : m_resp)
-            m_base->QueueManager::pimpl->m_queue->checkAliveAndUnlockInterface
-                (resp->requestor());
+            m_base->queue().checkAliveAndUnlockInterface(resp->requestor());
     }
 
     void sendClientResponse(AbstractResponse::responseHandle_t res) {
@@ -216,6 +217,22 @@ bool QueueManager::isWorking() const
 std::unique_ptr<DeviceDriver> QueueManager::takeExecutor()
 {
     return std::move(pimpl->m_executor);
+}
+
+bool QueueManager::takeActionFromQueue(AbstractAction::actionHandle_t& act)
+{
+    return pimpl->takeActionFromQueue(act);
+}
+
+std::unique_ptr<AbstractResponse> QueueManager::exec(
+    const std::unique_ptr<AbstractAction>& act)
+{
+    return pimpl->exec(act);
+}
+
+QueueInterface& QueueManager::queue()
+{
+    return pimpl->queue();
 }
 
 SimpleManager::SimpleManager(std::unique_ptr<DeviceDriver> executor,

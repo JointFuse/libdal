@@ -23,23 +23,69 @@ public:
 
 private:
     QBaseManager* m_base;
+
 };
 
 class QSimpleManager::_impl
 {
 public:
+    _impl(QSimpleManager* base)
+        : m_base{ base }
+        , m_infSynchPtr{ std::make_shared<InterfaceCallbackSynchronizationPrimitive>() }
+        , m_infSynch{ *m_infSynchPtr } {
+
+    }
+
+    ~_impl() {
+        auto interfacesToRelease = m_infSynch.release();
+        decltype(auto) queue = m_base->queue();
+
+        for (auto& interface : interfacesToRelease)
+            queue.checkAliveAndUnlockInterface(interface);
+    }
+
+    void processAction(AbstractAction::actionHandle_t& act)
+    try {
+        auto res = m_base->exec(act);
+
+        if (res && act->requestor())
+            m_base->sendClientResponse(std::move(res));
+    }
+    catch(std::exception& exc) {
+        if (act->requestor())
+            m_infSynch.release(act->requestor());
+
+        throw exc;
+    }
+
+    bool takeActionFromQueue(AbstractAction::actionHandle_t& act) {
+        act.reset();
+
+        while (m_base->queue().pop_front(act)) {
+            if (act && act->requestor() != nullptr &&
+                 !m_base->queue().tryLockInterface(act->requestor()))
+                continue;
+        }
+
+        if (!act)
+            return false;
+        else if (act->requestor() == nullptr)
+            return true;
+
+        m_infSynch.acquire(act->requestor());
+        return true;
+    }
+
     std::function<void(AbstractResponse::responseHandle_t)> responseSender() {
-        return [](auto resp) {
+        return [&queue = m_base->queue(),
+                &infSynch = *m_infSynchPtr,
+                infSynchPtr = m_infSynchPtr](auto resp) {
             auto cli = dynamic_cast<QAsynchInterface*>(resp->requestor());
 
-            if (!cli)
-                /*
-                 * thorwing deprecated - requestor may entered destructor and
-                 * virtual table isn't available for him
-                 */
-//                throw std::runtime_error("invalid qbased requestor subtype");
+            if (!cli || infSynch.released())
                 return;
 
+            infSynch.release(cli);
             QMetaObject::invokeMethod(
                 cli,
                 "responseReciever",
@@ -52,6 +98,12 @@ public:
                 );
         };
     }
+
+private:
+    QSimpleManager* m_base;
+    std::shared_ptr<InterfaceCallbackSynchronizationPrimitive> m_infSynchPtr;
+    InterfaceCallbackSynchronizationPrimitive& m_infSynch;
+
 };
 
 class QPromiseManager::_impl
@@ -62,11 +114,6 @@ public:
             auto promResp = dynamic_cast<PromiseResponse*>(resp.get());
 
             if (!promResp)
-                /*
-                 * thorwing deprecated - requestor may entered destructor and
-                 * virtual table isn't available for him
-                 */
-//                throw std::runtime_error("invalid promise response subtype");
                 return;
 
             auto prom = decltype(promResp->promise){ std::move(promResp->promise) };
@@ -91,9 +138,19 @@ QBaseManager::QBaseManager(std::unique_ptr<DeviceDriver> executor,
 QSimpleManager::QSimpleManager(std::unique_ptr<DeviceDriver> executor,
                                SimpleQueue::handle_t queue)
     : QBaseManager{ std::move(executor), queue }
-    , pimpl{ std::make_unique<_impl>() }
+    , pimpl{ std::make_unique<_impl>(this) }
 {
 
+}
+
+void QSimpleManager::processAction(AbstractAction::actionHandle_t& act)
+{
+    pimpl->processAction(act);
+}
+
+bool QSimpleManager::takeActionFromQueue(AbstractAction::actionHandle_t& act)
+{
+    return pimpl->takeActionFromQueue(act);
 }
 
 std::function<void(AbstractResponse::responseHandle_t)> QSimpleManager::responseSender()

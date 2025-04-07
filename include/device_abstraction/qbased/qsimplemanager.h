@@ -39,7 +39,9 @@ public:
     ~QSimpleManager();
 
 protected:
-    std::function<void(AbstractResponse::responseHandle_t)> responseSender();
+    void processAction(AbstractAction::actionHandle_t&) override;
+    bool takeActionFromQueue(AbstractAction::actionHandle_t&) override;
+    std::function<void(AbstractResponse::responseHandle_t)> responseSender() override;
 
 private:
     DAL_DECLARE_PIMPL
