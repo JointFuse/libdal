@@ -3,6 +3,9 @@
 
 #ifdef __cplusplus
 #include <memory>
+#include <map>
+#include <atomic>
+#include <mutex>
 #endif
 
 #include "dalcore.h"
@@ -107,6 +110,23 @@ protected:
 
 private:
     DAL_DECLARE_PIMPL
+
+};
+/**
+ * @brief The InterfaceCallbackSynchronizationPromitive class
+ */
+class InterfaceCallbackSynchronizationPrimitive final
+{
+public:
+    void acquire(AbstractAction::uid_t);
+    void release(AbstractAction::uid_t);
+    std::vector<AbstractAction::uid_t> release();
+    bool released() { return m_releaseFlag.load(std::memory_order_acquire); }
+
+private:
+    std::mutex m_containerLocker;
+    std::map<AbstractAction::uid_t, int> m_acquired;
+    std::atomic_bool m_releaseFlag{ false };
 
 };
 

@@ -244,6 +244,47 @@ void QueuedAsynchInterface::stopFurtherResponseProcessing()
     pimpl->stopFurtherResponseProcessing();
 }
 
+void InterfaceCallbackSynchronizationPrimitive::acquire(AbstractAction::uid_t uid)
+{
+    const auto _ = std::lock_guard<decltype(m_containerLocker)>{ m_containerLocker };
+
+    if (m_releaseFlag.load(std::memory_order_acquire))
+        return;
+
+
+    if (m_acquired.find(uid) == m_acquired.end())
+        m_acquired[uid] = 1;
+    else
+        m_acquired[uid] += 1;
+}
+
+void InterfaceCallbackSynchronizationPrimitive::release(AbstractAction::uid_t uid)
+{
+    const auto _ = std::lock_guard<decltype(m_containerLocker)>{ m_containerLocker };
+
+    if (m_releaseFlag.load(std::memory_order_acquire))
+        return;
+
+    m_acquired[uid] -= 1;
+}
+
+std::vector<AbstractAction::uid_t> InterfaceCallbackSynchronizationPrimitive::release()
+{
+    m_releaseFlag.store(true, std::memory_order_release);
+    const auto _ = std::lock_guard<decltype(m_containerLocker)>{ m_containerLocker };
+    auto acquiredInterfaces = std::vector<AbstractAction::uid_t>{};
+    acquiredInterfaces.reserve(m_acquired.size());
+
+    for (auto& interface : m_acquired) {
+        if (interface.second < 0)
+            throw std::runtime_error{ "interface has negative acquire count on release" };
+        else if (0 < interface.second)
+            acquiredInterfaces.push_back(interface.first);
+    }
+
+    return acquiredInterfaces;
+}
+
 DAL_PIMPL_THIS_CONSTRUCTOR(LogicDevice)
 DAL_PIMPL_THIS_CONSTRUCTOR(DeviceInterface)
 DAL_PIMPL_DEFAULT_DESTRUCTOR(LogicDevice)
