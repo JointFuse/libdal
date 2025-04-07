@@ -160,6 +160,11 @@ public:
 //        m_synch[uid].lock_shared();
 //    }
 
+    bool isAlive(AbstractAction::uid_t uid) {
+        const auto _ = std::shared_lock<decltype(m_synchMutex)>{ m_synchMutex };
+        return m_synch.find(uid) != m_synch.end() && m_synch.at(uid).isAlive();
+    }
+
     bool checkAliveAndUnlockInterface(AbstractAction::uid_t uid) {
         const auto _ = std::shared_lock<decltype(m_synchMutex)>{ m_synchMutex };
         const auto isInterfaceAlive = m_synch.at(uid).isAlive();
@@ -399,6 +404,11 @@ int SimpleQueue::queueSize() const
 //{
 //    pimpl->lockInterface(uid);
 //}
+
+bool SimpleQueue::isAlive(AbstractAction::uid_t uid)
+{
+    return pimpl->isAlive(uid);
+}
 
 bool SimpleQueue::checkAliveAndUnlockInterface(AbstractAction::uid_t uid)
 {

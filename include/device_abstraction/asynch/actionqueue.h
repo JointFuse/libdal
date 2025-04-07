@@ -49,6 +49,7 @@ public:
     virtual void clear      ()                                  = 0;
     virtual int queueSize   () const                            = 0;
 
+    virtual bool isAlive            (AbstractAction::uid_t)      = 0;
     virtual bool checkAliveAndUnlockInterface(AbstractAction::uid_t) = 0;
     virtual void lockInterface      (AbstractAction::uid_t)     = delete;
     virtual bool tryLockInterface   (AbstractAction::uid_t)     = 0;
@@ -79,6 +80,7 @@ public:
     void clear      ()                                  override;
     int queueSize   ()                                  const override;
 
+    bool isAlive            (AbstractAction::uid_t)     override;
 //    void lockInterface      (AbstractAction::uid_t)     override;
     bool checkAliveAndUnlockInterface(AbstractAction::uid_t) override;
     bool tryLockInterface   (AbstractAction::uid_t)     override;
