@@ -26,6 +26,10 @@ public:
 
 };
 
+namespace AsynchInterface{
+thread_local std::atomic<QAsynchInterface*> Destructable{ nullptr };
+}
+
 class QAsynchInterface::_impl
 {
 public:
@@ -34,6 +38,7 @@ public:
     }
 
     ~_impl() {
+        m_destructableInterface.store(m_base, std::memory_order_release);
         m_base->stopFurtherResponseProcessing();
 
         auto destructionPreparation = std::async(
@@ -45,10 +50,29 @@ public:
         while(destructionPreparation.wait_for(std::chrono::seconds(0)) !=
               std::future_status::ready)
             qApp->processEvents();
+
+        m_destructableInterface.store(nullptr, std::memory_order_release);
     }
 
     void responseReciever(AbstractResponse* resp)
     {
+        const auto destrInf = m_destructableInterface.
+                              load(std::memory_order_acquire);
+
+        if (destrInf != nullptr && destrInf != m_base) {
+            QMetaObject::invokeMethod(
+                m_base,
+                "responseReciever",
+                Qt::QueuedConnection,
+                // WARNING QT expects an argument of a type that
+                // supports copying, so it has to get rid of the
+                // smart pointer wrapper, which potentially leads
+                // to a memory leak
+                Q_ARG(dal::AbstractResponse*, resp)
+                );
+            return;
+        }
+
         // WARNING The paradigm of this architecture implies a one-to-one
         // correspondence between the response object and the client
         // interface, and thanks to this formal agreement we can afford
@@ -61,6 +85,9 @@ public:
 
 private:
     QAsynchInterface* m_base;
+
+    inline static std::atomic<QAsynchInterface*>&
+        m_destructableInterface{ AsynchInterface::Destructable };
 
 };
 
