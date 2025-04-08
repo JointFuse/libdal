@@ -55,6 +55,8 @@ public:
             if (act && act->requestor() != nullptr &&
                 !m_queue->isAlive(act->requestor()))
                 continue;
+            else
+                break;
         }
 
         if (act)
