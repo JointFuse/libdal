@@ -1,6 +1,7 @@
 #include "qasynchinterface.h"
 
 #include <future>
+#include <set>
 
 #include <QMetaObject>
 #include <QDebug>
@@ -9,6 +10,18 @@
 #include "qsimplemanager.h"
 
 using namespace dal;
+
+class AliveInterfaceFilter
+{
+public:
+    void registerInterface(dal::DeviceInterface* ptr) { m_aliveCollection.insert(ptr); }
+    void unregisterInterface(dal::DeviceInterface* ptr) { m_aliveCollection.erase(ptr); }
+    bool hasInterface(dal::DeviceInterface* ptr) { return m_aliveCollection.find(ptr) != m_aliveCollection.end(); }
+
+private:
+    std::set<dal::DeviceInterface*> m_aliveCollection;
+
+};
 
 class QBaseInterface::_impl
 {
@@ -28,16 +41,19 @@ public:
 
 namespace AsynchInterface{
 thread_local std::list<QAsynchInterface*> Destructable;
+thread_local AliveInterfaceFilter aliveFilter;
+
 }
 
 class QAsynchInterface::_impl
 {
 public:
     _impl(QAsynchInterface* base) : m_base{ base } {
-
+        AsynchInterface::aliveFilter.registerInterface(m_base);
     }
 
     ~_impl() {
+        AsynchInterface::aliveFilter.unregisterInterface(m_base);
         m_destructableInterface.push_front(m_base);
         m_base->stopFurtherResponseProcessing();
 
@@ -55,7 +71,8 @@ public:
     }
 
     void responseReciever(AbstractResponse* resp) {
-        if (!m_base->queue().checkAliveAndUnlockInterface(resp->requestor())) {
+        if (!m_base->queue().checkAliveAndUnlockInterface(resp->requestor()) ||
+            AsynchInterface::aliveFilter.hasInterface(resp->requestor()) == false) {
             delete resp;
             return;
         }
