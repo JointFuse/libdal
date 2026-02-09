@@ -27,16 +27,17 @@ class QBaseManager : public QObject, public AsynchRespondManager
 /**
  * @brief The QSimpleManager class
  */
-class [[deprecated(
-    "This class is deprecated. Using of it may lead to undefined behavior. Strongly recomend to "
-    "use QPromiseManager wich not using unsafe callback mechanism QMetaObject::invokeMethod." )]]
-QSimpleManager : public QBaseManager
+class QSimpleManager : public QBaseManager
 {
     Q_OBJECT
 
   public:
-    QSimpleManager( std::unique_ptr<DeviceDriver> executor, SimpleQueue::handle_t queue );
-    ~QSimpleManager();
+    [[deprecated(
+        "This class is deprecated. Using of it may lead to undefined behavior. Strongly recomend "
+        "to "
+        "use QPromiseManager wich not using unsafe callback mechanism "
+        "QMetaObject::invokeMethod." )]] QSimpleManager( std::unique_ptr<DeviceDriver> executor, SimpleQueue::handle_t queue );
+    virtual ~QSimpleManager();
 
   protected:
     void processAction( AbstractAction::actionHandle_t& ) override;
