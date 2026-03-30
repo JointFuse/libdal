@@ -77,7 +77,10 @@ class MultiChannel
 
 public:
     std::shared_ptr<DecoChannel<T>> getChannel(Key k);
-    std::map<Key, T> any(void* reqId);
+    template<typename Ratio>
+    std::map<Key, T>
+    any( void* reqId,
+         std::chrono::duration<int64_t, Ratio> timeout = std::chrono::milliseconds( 1 ) );
 //    std::map<Key, T> all();
 
 private:
@@ -105,7 +108,9 @@ std::shared_ptr<DecoChannel<T>> MultiChannel<Key, T>::getChannel(Key k)
 }
 
 template<typename Key, typename T>
-std::map<Key, T> MultiChannel<Key, T>::any(void* reqId)
+template<typename Ratio>
+std::map<Key, T> MultiChannel<Key, T>::any(
+        void* reqId, std::chrono::duration<int64_t, Ratio> timeout)
 {
     struct ReqEraser {
         ReqEraser(decltype(m_impl->ready)& where, void* what)
@@ -121,14 +126,12 @@ std::map<Key, T> MultiChannel<Key, T>::any(void* reqId)
 
     };
 
-    static constexpr auto TIMEOUT = std::chrono::milliseconds(3000);
-
     auto lck = std::unique_lock<std::recursive_mutex>(*m_impl->accMtx);
     const auto _ = ReqEraser{ m_impl->ready, reqId };
 
     if (m_impl->ready[reqId].empty())
     {
-        const auto res = m_impl->cv.wait_for(lck, TIMEOUT);
+        const auto res = m_impl->cv.wait_for(lck, timeout);
 
         if (res == std::cv_status::timeout)
         {
