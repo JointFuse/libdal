@@ -1,35 +1,38 @@
 #ifndef ADAPTERINTERFACE_H
 #define ADAPTERINTERFACE_H
 
-#include <stdexcept>
-
 #include "../material/actionabstract.h"
 #include "../material/responseabstract.h"
 
-namespace dal { ////////////////////////////////////////////////////////////////
+#include <stdexcept>
+
+namespace dal {    ////////////////////////////////////////////////////////////////
 /**
  * @brief The driver_error class
  */
-class driver_error : public std::runtime_error { };
+class driver_error : public std::runtime_error
+{
+  public:
+    using std::runtime_error::runtime_error;
+};
 /**
  * @brief The DeviceDriver class
  */
 class DeviceDriver
 {
-public:
+  public:
     using driverHandle_t = std::unique_ptr<DeviceDriver>;
 
-public:
+  public:
     virtual ~DeviceDriver() = default;
 
-    virtual void initializeDevice   () = 0;
-    virtual void closeDevice        () = 0;
+    virtual void initializeDevice() = 0;
+    virtual void closeDevice()      = 0;
 
-    virtual AbstractResponse::responseHandle_t executeAction(
-                const AbstractAction::actionHandle_t&) = 0;
-
+    virtual AbstractResponse::responseHandle_t
+    executeAction( const AbstractAction::actionHandle_t& ) = 0;
 };
 
-} //////////////////////////////////////////////////////////////////////////////
+}    // namespace dal
 
-#endif // ADAPTERINTERFACE_H
+#endif    // ADAPTERINTERFACE_H
