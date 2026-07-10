@@ -40,8 +40,10 @@ public:
         auto interfacesToRelease = m_infSynch.release();
         decltype(auto) queue = m_base->queue();
 
-        for (auto& interface : interfacesToRelease)
-            queue.checkAliveAndUnlockInterface(interface);
+        for (auto& interface : interfacesToRelease) {
+            if (queue.isAlive(interface))
+                queue.checkAliveAndUnlockInterface(interface);
+        }
     }
 
     void processAction(AbstractAction::actionHandle_t& act)

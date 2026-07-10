@@ -1,154 +1,146 @@
 #ifndef FIBERCHANNELS_H
 #define FIBERCHANNELS_H
 
+#include <cassert>
+#include <memory>
 #include <mutex>
-#include <atomic>
-#include <type_traits>
-#include <condition_variable>
-#include <functional>
-#include <map>
-#include <set>
-#include <chrono>
+#include <optional>
+#include <stdexcept>
+#include <unordered_map>
+#include <vector>
 
-namespace dal { ////////////////////////////////////////////////////////////////
+namespace dal {    ////////////////////////////////////////////////////////////////
 
 template<typename T>
 class DecoChannel
 {
-private:
-    template<typename Key, typename TT>
-    friend class MultiChannel;
+  public:
+    DecoChannel( const DecoChannel& )            = delete;
+    DecoChannel& operator=( const DecoChannel& ) = delete;
 
-public:
-    DecoChannel()
-        : m_dataMutex{ std::make_shared<std::recursive_mutex>() }
-    {}
-    DecoChannel(std::function<void(std::function<void()>)> setterDecorator,
-                std::shared_ptr<std::recursive_mutex> mutex)
-        : m_dataMutex{ mutex }
-        , m_setterDecorator{ setterDecorator }
-    {}
+    DecoChannel() = default;
 
-    void set(T newData) {
-        auto setter = [dt = newData,
-                       &internal = m_data]() {
-            internal = dt;
-        };
-
-        if (m_setterDecorator)
-            m_setterDecorator(setter);
-        else
-        {
-            auto lck = std::lock_guard<std::recursive_mutex>{ *m_dataMutex };
-            m_data = newData;
-        }
+    void set( T newData )
+    {
+        auto lck = std::lock_guard<std::mutex>{ m_dataMutex };
+        m_data   = std::move( newData );
+        ++m_epoch;
     }
-    T get() {
-        const auto lck = std::lock_guard<std::recursive_mutex>{ *m_dataMutex };
+
+    T get() const
+    {
+        const auto lck = std::lock_guard<std::mutex>{ m_dataMutex };
         return m_data;
     }
 
-private:
-    T get(std::shared_ptr<std::recursive_mutex> mtx) {
-        if (mtx && mtx.owner_before(m_dataMutex)) {
+    std::optional<T> getNew( uint64_t& clientEpoch ) const
+    {
+        const auto lck = std::lock_guard<std::mutex>{ m_dataMutex };
+
+        if ( clientEpoch != m_epoch ) {
+            clientEpoch = m_epoch;
             return m_data;
-        }
-        else
-            return get();
+        } else
+            return {};
     }
 
-private:
-    std::atomic_int m_getterCounter{ 0 };
+  private:
+    /**
+     * @note m_epoch overflow is not handled
+     */
+    uint64_t m_epoch{ 0 };
     T m_data;
-    std::shared_ptr<std::recursive_mutex> m_dataMutex;
-    const std::function<void(std::function<void()>)> m_setterDecorator;
-
+    mutable std::mutex m_dataMutex;
 };
 
+//------------------------------------------------------------------------------
+/**
+ * @brief The MultiChannel class
+ * @abstract unites unrelated DecoChannels
+ */
 template<typename Key, typename T>
 class MultiChannel
 {
-    struct impl
+  public:
+    /**
+     * @brief The DataTraceID class
+     * @abstract a client descriptor storing information about the latest data received by the
+     * client
+     * @details used to eliminate duplicate data when accessing multiple channels
+     * @attention thread-unsafe class
+     */
+    class DataTraceID
     {
-        std::shared_ptr<std::recursive_mutex> accMtx{ std::make_shared<std::recursive_mutex>() };
-        std::condition_variable_any cv;
-        std::map<void*, std::set<Key>> ready;
+        friend class MultiChannel<Key, T>;
+
+      public:
+        DataTraceID() = default;
+
+        DataTraceID( const DataTraceID& )            = delete;
+        DataTraceID& operator=( const DataTraceID& ) = delete;
+
+        DataTraceID( DataTraceID&& other ) noexcept : m_versions( std::move( other.m_versions ) ) {}
+        DataTraceID& operator=( DataTraceID&& ) = delete;
+
+      private:
+        std::unordered_map<Key, uint64_t>
+            m_versions;    // used to prevent the re-capture of the same data
     };
 
-public:
-    std::shared_ptr<DecoChannel<T>> getChannel(Key k);
-    template<typename Ratio>
-    std::map<Key, T>
-    any( void* reqId,
-         std::chrono::duration<int64_t, Ratio> timeout = std::chrono::milliseconds( 1 ) );
-//    std::map<Key, T> all();
+  public:
+    MultiChannel( const MultiChannel& )            = delete;
+    MultiChannel& operator=( const MultiChannel& ) = delete;
 
-private:
-    std::shared_ptr<impl> m_impl{ std::make_shared<impl>() };
-    std::map<Key, std::shared_ptr<DecoChannel<T>>> m_chnls;
+    MultiChannel( std::vector<Key> channelKeys );
 
+    std::shared_ptr<DecoChannel<T>> getChannel( Key k ) const;
+    bool hasChannel( Key k ) const { return m_chnls.find( k ) != m_chnls.end(); }
+
+    std::unordered_map<Key, T> fetchNew( DataTraceID& descriptor );
+
+  private:
+    std::unordered_map<Key, std::shared_ptr<DecoChannel<T>>> m_chnls;
 };
 
+//------------------------------------------------------------------------------
+
 template<typename Key, typename T>
-std::shared_ptr<DecoChannel<T>> MultiChannel<Key, T>::getChannel(Key k)
+inline MultiChannel<Key, T>::MultiChannel( std::vector<Key> channelKeys )
 {
-    auto decor = [impl = m_impl,
-                  curr = k](std::function<void()> setter) {
-        const auto _ = std::lock_guard<std::recursive_mutex>(*impl->accMtx);
-        setter();
-
-        for (auto& obj : impl->ready)
-            obj.second.insert(curr);
-
-        impl->cv.notify_all();
-    };
-
-    m_chnls[k] = std::make_shared<DecoChannel<T>>(decor, m_impl->accMtx);
-    return m_chnls[k];
+    for ( const auto& key : channelKeys ) {
+        m_chnls.emplace( key, std::make_shared<DecoChannel<T>>() );
+    }
 }
 
 template<typename Key, typename T>
-template<typename Ratio>
-std::map<Key, T> MultiChannel<Key, T>::any(
-        void* reqId, std::chrono::duration<int64_t, Ratio> timeout)
+std::shared_ptr<DecoChannel<T>> MultiChannel<Key, T>::getChannel( Key k ) const
 {
-    struct ReqEraser {
-        ReqEraser(decltype(m_impl->ready)& where, void* what)
-            : m_where{ where }, m_what{ what } {}
+    auto chnlItr = m_chnls.find( k );
 
-        ~ReqEraser() {
-            m_where.erase(m_what);
-        }
+    if ( chnlItr == m_chnls.end() )
+        throw std::out_of_range{ "MultiChannel bad channel access" };
 
-    private:
-        decltype(m_impl->ready)& m_where;
-        void* m_what;
+    return chnlItr->second;
+}
 
-    };
+template<typename Key, typename T>
+std::unordered_map<Key, T> MultiChannel<Key, T>::fetchNew( DataTraceID& descriptor )
+{
+    auto res = std::unordered_map<Key, T>{};
 
-    auto lck = std::unique_lock<std::recursive_mutex>(*m_impl->accMtx);
-    const auto _ = ReqEraser{ m_impl->ready, reqId };
+    for ( const auto& [key, chnlPtr] : m_chnls ) {
+        auto& previousVersionItr = descriptor.m_versions[key];
+        auto optionalData        = chnlPtr->getNew( previousVersionItr );
 
-    if (m_impl->ready[reqId].empty())
-    {
-        const auto res = m_impl->cv.wait_for(lck, timeout);
-
-        if (res == std::cv_status::timeout)
-        {
-            m_impl->ready.erase(reqId);
-            return {};
-        }
+        if ( optionalData.has_value() )
+            res.emplace( key, std::move( *optionalData ) );
     }
 
-    auto res = std::map<Key, T>{};
-
-    for (auto key : m_impl->ready[reqId])
-        res[key] = m_chnls[key]->get(m_impl->accMtx);
-
-    m_impl->ready[reqId].clear();
     return res;
 }
 
-} /// ~dal /////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
-#endif // FIBERCHANNELS_H
+}    // namespace dal
+
+#endif    // FIBERCHANNELS_H

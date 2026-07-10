@@ -25,11 +25,14 @@ INCLUDEPATH += ../include/device_abstraction/material
 INCLUDEPATH += ../include/device_abstraction/qbased
 
 SOURCES += \
+        device_abstraction/material/fiforecursivemutex.cpp \
         device_abstraction/asynch/actionqueue.cpp \
         device_abstraction/asynch/queuemanager.cpp \
         device_abstraction/devicexternal.cpp \
         device_abstraction/qbased/qasynchinterface.cpp \
         device_abstraction/qbased/qsimplemanager.cpp \
+        device_abstraction/qbased/dal_integration.cpp
+
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -42,10 +45,12 @@ HEADERS += \
     ../include/device_abstraction/devicexternal.h \
     ../include/device_abstraction/drivers/adapterinterface.h \
     ../include/device_abstraction/material/actionabstract.h \
+    ../include/device_abstraction/material/fiforecursivemutex.h \
     ../include/device_abstraction/material/responseabstract.h \
     ../include/device_abstraction/qbased/qasynchinterface.h \
     ../include/device_abstraction/qbased/qsimplemanager.h \
     ../include/device_abstraction/dalcore.h \
     ../include/device_abstraction/material/channel.h \
     ../include/device_abstraction/material/promise.h \
-    ../include/device_abstraction/material/fiberchannels.h
+    ../include/device_abstraction/material/fiberchannels.h \
+    ../include/device_abstraction/qbased/dal_integration.h

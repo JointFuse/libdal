@@ -26,7 +26,9 @@ public:
         if (m_acquireCounter == 0)
             throw std::runtime_error("attempt to unlock non-locked interface");
 
-        if (--m_acquireCounter != 0)
+        m_acquireCounter -= 1;
+
+        if (m_acquireCounter != 0)
             return;
 
         m_releaseNotifier.notify_all();
@@ -155,10 +157,6 @@ public:
     }
 
     void lockInterface(AbstractAction::uid_t uid) = delete;
-//    {
-//        const auto _ = std::lock_guard<decltype(m_synchMutex)>{ m_synchMutex };
-//        m_synch[uid].lock_shared();
-//    }
 
     bool isAlive(AbstractAction::uid_t uid) {
         const auto _ = std::shared_lock<decltype(m_synchMutex)>{ m_synchMutex };

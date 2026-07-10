@@ -166,8 +166,10 @@ public:
         if (m_task.valid())
             m_task.get();
 
-        for (auto& resp : m_resp)
-            m_base->queue().checkAliveAndUnlockInterface(resp->requestor());
+        for (auto& resp : m_resp) {
+            if (m_base->queue().isAlive(resp->requestor()))
+                m_base->queue().checkAliveAndUnlockInterface(resp->requestor());
+        }
     }
 
     void sendClientResponse(AbstractResponse::responseHandle_t res) {
