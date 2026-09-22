@@ -142,7 +142,7 @@ public:
             {
                 const auto time = std::chrono::high_resolution_clock::now();
                 ((CalcTimeoutAction*)actBuf[i].get())->request_time = time;
-                interface()->execute(std::move(actBuf[i]));
+                getInterface()->execute(std::move(actBuf[i]));
             }
 #ifdef PROMISE
             for (auto& ftr : ftrBuf)

@@ -55,7 +55,7 @@ public:
     }
 
     const DeviceInterface::interfaceHandle_t
-    interface () const noexcept {
+    getInterface () const noexcept {
         return m_interface;
     }
 
@@ -182,9 +182,9 @@ void LogicDevice::setInterface(DeviceInterface::interfaceHandle_t rhs)
     pimpl->setInterface(rhs);
 }
 
-DeviceInterface::interfaceHandle_t LogicDevice::interface() const
+DeviceInterface::interfaceHandle_t LogicDevice::getInterface() const
 {
-    return pimpl->interface();
+    return pimpl->getInterface();
 }
 
 void DeviceInterface::notifyOwner(AbstractResponse::responseHandle_t resp)

@@ -58,7 +58,7 @@ public:
     void setInterface(DeviceInterface::interfaceHandle_t rhs);
 
     DeviceInterface::interfaceHandle_t
-    interface() const;
+    getInterface() const;
 
 protected:
     DAL_DECLARE_PIMPL
@@ -79,7 +79,7 @@ public:
 
 private:
     using LogicDevice::setInterface;
-    using LogicDevice::interface;
+    using LogicDevice::getInterface;
 
     void responseGetter(std::unique_ptr<AbstractResponse>) override;
 
